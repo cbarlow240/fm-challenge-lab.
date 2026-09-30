@@ -388,3 +388,213 @@ h1 span {
     transition: none;
   }
 }
+/* Screen visibility */
+
+[hidden] {
+  display: none !important;
+}
+
+/* Challenge setup */
+
+.challenge-setup {
+  padding: 40px 56px 64px;
+  background:
+    radial-gradient(
+      ellipse at 90% 10%,
+      rgb(103 67 156 / 20%),
+      transparent 50%
+    ),
+    var(--surface);
+}
+
+.back-button {
+  min-height: 44px;
+  margin-bottom: 28px;
+  padding: 8px 0;
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.back-button:hover {
+  color: var(--text);
+}
+
+.challenge-setup h2 {
+  margin: 0 0 16px;
+  font-size: clamp(30px, 4vw, 48px);
+  line-height: 1.15;
+  letter-spacing: -1.5px;
+}
+
+.setup-description {
+  margin: 0 0 32px;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+/* Difficulty cards */
+
+.difficulty-fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.difficulty-fieldset legend {
+  margin-bottom: 16px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.difficulty-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.difficulty-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-height: 180px;
+  padding: 24px 18px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+
+.difficulty-card:hover {
+  background: #17243c;
+  border-color: #536886;
+}
+
+.difficulty-card:has(input:checked) {
+  background: #17324d;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 1px var(--blue);
+}
+
+.difficulty-card:has(input:focus-visible) {
+  outline: 3px solid var(--purple);
+  outline-offset: 4px;
+}
+
+.difficulty-card input {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  accent-color: var(--blue);
+}
+
+.difficulty-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.difficulty-name {
+  color: var(--text);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+.difficulty-description {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+/* Generate button and selection message */
+
+.setup-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-top: 32px;
+}
+
+.setup-actions .button-primary:disabled {
+  background: #35435b;
+  color: #bcc7d8;
+  box-shadow: none;
+}
+
+.setup-status {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* Tablet and phone layouts */
+
+@media (max-width: 1000px) {
+  .difficulty-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 650px) {
+  .challenge-setup {
+    padding: 28px 24px 44px;
+  }
+
+  .back-button {
+    margin-bottom: 22px;
+    font-size: 13px;
+  }
+
+  .challenge-setup h2 {
+    font-size: 34px;
+    letter-spacing: -1px;
+  }
+
+  .setup-description {
+    font-size: 14px;
+  }
+
+  .difficulty-grid {
+    gap: 12px;
+  }
+
+  .difficulty-card {
+    flex-direction: column;
+    gap: 14px;
+    min-height: 190px;
+    padding: 18px 14px;
+  }
+
+  .difficulty-name {
+    font-size: 15px;
+  }
+
+  .difficulty-description {
+    font-size: 12px;
+  }
+
+  .setup-actions {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .setup-actions .button-primary {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .difficulty-card {
+    transition: none;
+  }
+}
