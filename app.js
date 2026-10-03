@@ -830,7 +830,8 @@
 
     const removal = lastRemoval;
     getSquad().players.splice(removal.index, 0, removal.player);
-    lastRemoval = null;
+        lastRemoval = null;
+    seasonProgress = null;
 
     renderSquad();
     renderTactics();
