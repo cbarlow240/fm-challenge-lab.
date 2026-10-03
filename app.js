@@ -3201,6 +3201,430 @@
       );
     });
   }
+    // Custom attribute-based estimates, not FM's official ability formula.
+  const leagueRatingProfiles = {
+    goalkeeper: {
+      label: "Goalkeeper",
+      weights: {
+        Reflexes: 3, Handling: 2, "One on Ones": 2,
+        "Aerial Reach": 1.5, "Command of Area": 1.5,
+        Communication: 1, Decisions: 1, Positioning: 1,
+        Agility: 1, Concentration: 1
+      }
+    },
+    centreBack: {
+      label: "Centre-back",
+      weights: {
+        Acceleration: 1, Pace: 1, "Jumping Reach": 2,
+        Strength: 1.5, Marking: 2, Tackling: 2,
+        Positioning: 2, Anticipation: 1.5, Decisions: 1,
+        Composure: 1, Heading: 1.5, Concentration: 1.5
+      }
+    },
+    fullBack: {
+      label: "Full-back / wing-back",
+      weights: {
+        Acceleration: 2, Pace: 2, Stamina: 1.5,
+        "Work Rate": 1.5, Positioning: 1.5,
+        Tackling: 1.5, Anticipation: 1, Crossing: 1,
+        Passing: 1, Technique: 0.5, Dribbling: 1
+      }
+    },
+    defensiveMidfielder: {
+      label: "Defensive midfielder",
+      weights: {
+        Passing: 1.5, Decisions: 2, Positioning: 2,
+        Anticipation: 1.5, Tackling: 1.5, Teamwork: 1,
+        "Work Rate": 1.5, Stamina: 1, Strength: 0.5,
+        Composure: 1, Vision: 1, "First Touch": 1
+      }
+    },
+    centralMidfielder: {
+      label: "Central midfielder",
+      weights: {
+        Passing: 2, Vision: 2, Decisions: 2,
+        "First Touch": 1.5, Technique: 1.5,
+        Stamina: 1.5, "Work Rate": 1, Teamwork: 1,
+        Anticipation: 1, Positioning: 0.5, Composure: 1
+      }
+    },
+    attackingMidfielder: {
+      label: "Attacking midfielder",
+      weights: {
+        Vision: 2, Passing: 2, Technique: 2,
+        "First Touch": 1.5, Dribbling: 1.5,
+        "Off the Ball": 1.5, Decisions: 1.5,
+        Acceleration: 1, Pace: 1, Composure: 1, Flair: 1
+      }
+    },
+    winger: {
+      label: "Wide midfielder / winger",
+      weights: {
+        Acceleration: 2, Pace: 2, Dribbling: 2,
+        Technique: 1.5, "First Touch": 1,
+        Crossing: 1.5, "Off the Ball": 1.5,
+        Decisions: 1, Finishing: 1, Stamina: 1
+      }
+    },
+    striker: {
+      label: "Striker",
+      weights: {
+        Acceleration: 1.5, Pace: 1.5, Finishing: 2,
+        "Off the Ball": 2, Anticipation: 1.5,
+        Composure: 1.5, "First Touch": 1,
+        Heading: 0.75, Strength: 0.75, Balance: 0.5,
+        Decisions: 1, "Work Rate": 1
+      }
+    }
+  };
+
+  function leaguePositionGroups(positions) {
+    const text = positions.toUpperCase();
+
+    if (/\bGK\b/.test(text)) return ["goalkeeper"];
+
+    const groups = new Set();
+
+    if (/\bDM\b/.test(text)) {
+      groups.add("defensiveMidfielder");
+    }
+
+    if (/\bST\b/.test(text)) {
+      groups.add("striker");
+    }
+
+    const pattern =
+      /\b((?:DM|AM|WB|ST|D|M)(?:\/(?:DM|AM|WB|ST|D|M))*)\s*\(([RLC]+)\)/g;
+
+    for (const match of text.matchAll(pattern)) {
+      const roles = match[1].split("/");
+      const central = match[2].includes("C");
+      const wide = /[RL]/.test(match[2]);
+
+      if (roles.includes("D") && central) {
+        groups.add("centreBack");
+      }
+
+      if (
+        (roles.includes("D") && wide) ||
+        roles.includes("WB")
+      ) {
+        groups.add("fullBack");
+      }
+
+      if (roles.includes("M") && central) {
+        groups.add("centralMidfielder");
+      }
+
+      if (roles.includes("AM") && central) {
+        groups.add("attackingMidfielder");
+      }
+
+      if (
+        wide &&
+        (roles.includes("AM") || roles.includes("M"))
+      ) {
+        groups.add("winger");
+      }
+    }
+
+    return [...groups];
+  }
+
+  function weightedLeagueRange(attributes, profile) {
+    let low = 0;
+    let high = 0;
+    let observed = 0;
+    let total = 0;
+
+    Object.entries(profile.weights).forEach(([name, weight]) => {
+      const value = attributes[name];
+      total += weight;
+
+      if (value !== null && value !== undefined) {
+        low += value.low * weight;
+        high += value.high * weight;
+        observed += weight;
+      } else {
+        low += weight;
+        high += 20 * weight;
+      }
+    });
+
+    return {
+      low: low / total,
+      high: high / total,
+      coverage: observed / total
+    };
+  }
+
+  function mergeLeagueAndSquad(reference, squad) {
+    const merged = new Map(
+      reference.map((player) => [player.uid, player])
+    );
+
+    squad.forEach((player) => {
+      const attributes = {};
+
+      attributeFields.forEach(([, name]) => {
+        attributes[name] = {
+          low: player.attributes[name],
+          high: player.attributes[name]
+        };
+      });
+
+      merged.set(player.uid, {
+        uid: player.uid,
+        name: player.name,
+        club: player.club,
+        age: player.age,
+        positions: player.positions,
+        attributes
+      });
+    });
+
+    return [...merged.values()];
+  }
+
+  function estimateLeaguePlayer(player, pool) {
+    const estimates = [];
+    const ownAttributes = {};
+
+    attributeFields.forEach(([, name]) => {
+      ownAttributes[name] = {
+        low: player.attributes[name],
+        high: player.attributes[name]
+      };
+    });
+
+    leaguePositionGroups(player.positions).forEach((group) => {
+      const profile = leagueRatingProfiles[group];
+      const own = weightedLeagueRange(ownAttributes, profile);
+
+      const peers = pool
+        .filter((candidate) =>
+          candidate.uid !== player.uid &&
+          candidate.age >= 18 &&
+          leaguePositionGroups(candidate.positions).includes(group)
+        )
+        .map((candidate) => ({
+          club: normalise(candidate.club),
+          range: weightedLeagueRange(candidate.attributes, profile)
+        }))
+        .filter((candidate) => candidate.range.coverage >= 0.75);
+
+      const byClub = new Map();
+
+      peers.forEach((peer) => {
+        byClub.set(
+          peer.club,
+          (byClub.get(peer.club) ?? 0) + 1
+        );
+      });
+
+      if (peers.length < 8 || byClub.size < 4) return;
+
+      let below = 0;
+      let possibleBelow = 0;
+      const epsilon = 1e-9;
+
+      peers.forEach((peer) => {
+        const weight = 1 / byClub.get(peer.club);
+
+        const exactTie =
+          Math.abs(peer.range.low - peer.range.high) < epsilon &&
+          Math.abs(peer.range.low - own.low) < epsilon;
+
+        if (exactTie) {
+          below += 0.5 * weight;
+          possibleBelow += 0.5 * weight;
+        } else if (peer.range.high < own.low - epsilon) {
+          below += weight;
+          possibleBelow += weight;
+        } else if (peer.range.low <= own.high + epsilon) {
+          possibleBelow += weight;
+        }
+      });
+
+      const low = Math.max(
+        1,
+        Math.min(10, 1 + 9 * below / byClub.size)
+      );
+
+      const high = Math.max(
+        low,
+        Math.min(10, 1 + 9 * possibleBelow / byClub.size)
+      );
+
+      estimates.push({
+        label: profile.label,
+        low,
+        high,
+        rating: (low + high) / 2,
+        peers: peers.length,
+        clubs: byClub.size
+      });
+    });
+
+    estimates.sort((a, b) =>
+      b.rating - a.rating || b.low - a.low
+    );
+
+    return estimates[0] ?? null;
+  }
+
+  function matchingLeagueReference() {
+    if (
+      !currentImportedPlayers ||
+      !importSaveForm ||
+      !leagueForm
+    ) return null;
+
+    const name = clean(
+      importSaveForm.elements.namedItem("leagueName").value
+    );
+
+    const date = clean(
+      importSaveForm.elements.namedItem("gameDate").value
+    );
+
+    const selectedName = clean(
+      leagueForm.elements.namedItem("leagueName").value
+    );
+
+    const selectedDate = clean(
+      leagueForm.elements.namedItem("gameDate").value
+    );
+
+    if (
+      leagueIdentity(name, date) !==
+      leagueIdentity(selectedName, selectedDate)
+    ) return null;
+
+    return leagueReferences.find((record) =>
+      record.id === selectedLeagueReferenceId &&
+      leagueIdentity(record.leagueName, record.gameDate) ===
+      leagueIdentity(name, date)
+    ) ?? null;
+  }
+
+  function clearImportedLeagueRatings() {
+    if (leagueRatingSummary) {
+      leagueRatingSummary.hidden = true;
+      leagueRatingSummary.textContent = "";
+    }
+
+    const container =
+      document.getElementById("squad-import-players");
+
+    if (!container) return;
+
+    container.querySelectorAll(".imported-league-rating")
+      .forEach((node) => node.remove());
+
+    container.querySelectorAll("summary[data-base-label]")
+      .forEach((node) => {
+        node.textContent = node.dataset.baseLabel;
+      });
+  }
+
+  function updateLeagueRatingAction() {
+    if (!leagueRateButton) return;
+
+    clearImportedLeagueRatings();
+    leagueRateButton.disabled = !matchingLeagueReference();
+  }
+
+  if (
+    leagueRateButton &&
+    leagueStatus &&
+    leagueRatingSummary
+  ) {
+    leagueRateButton.addEventListener("click", () => {
+      const reference = matchingLeagueReference();
+
+      if (
+        !reference ||
+        !currentImportedPlayers ||
+        !importSaveForm.reportValidity()
+      ) {
+        leagueStatus.textContent =
+          "Open a squad export with exactly the same league name and in-game date as a saved comparison.";
+        return;
+      }
+
+      clearImportedLeagueRatings();
+
+      const pool = mergeLeagueAndSquad(
+        reference.players,
+        currentImportedPlayers
+      );
+
+      const cards =
+        document.getElementById("squad-import-players").children;
+
+      currentImportedPlayers.forEach((player, index) => {
+        const card = cards[index];
+        if (!card) return;
+
+        const summary = card.querySelector("summary");
+
+        if (!summary.dataset.baseLabel) {
+          summary.dataset.baseLabel = summary.textContent;
+        }
+
+        const estimate = estimateLeaguePlayer(player, pool);
+
+        if (!estimate) {
+          summary.textContent =
+            `${summary.dataset.baseLabel} · Rating pending`;
+
+          card.append(makeElement(
+            "p",
+            "Not enough comparable adult players with usable attributes. At least 8 players from 4 clubs are needed.",
+            "signing-note imported-league-rating"
+          ));
+
+          return;
+        }
+
+        summary.textContent =
+          `${summary.dataset.baseLabel} · Estimated ${estimate.rating.toFixed(1)}/10`;
+
+        card.append(makeElement(
+          "p",
+          `${estimate.label} comparison · possible range ${estimate.low.toFixed(1)}–${estimate.high.toFixed(1)}/10 · ${estimate.peers} adult players from ${estimate.clubs} clubs.`,
+          "signing-note imported-league-rating"
+        ));
+      });
+
+      const clubs = new Set(
+        pool.map((player) => normalise(player.club))
+      ).size;
+
+      leagueRatingSummary.textContent =
+        `${reference.leagueName}, ${reference.gameDate}: ${pool.length} unique players across ${clubs} clubs, including your squad. These are provisional attribute-based estimates for each player's strongest listed position group. 5.5/10 is the middle of the comparable sample. Each club has equal weight; reference players are aged 18+. Masked attributes create possible ranges, not exact values. These are not FM's official ability ratings.`;
+
+      leagueRatingSummary.hidden = false;
+
+      leagueStatus.textContent =
+        "Estimated ratings shown in the player preview. Select a player to see the comparison range. Your saved player attributes and career remain unchanged.";
+    });
+
+    if (importSaveForm) {
+      importSaveForm.addEventListener(
+        "input", updateLeagueRatingAction
+      );
+    }
+
+    if (leagueForm) {
+      leagueForm.addEventListener(
+        "input", updateLeagueRatingAction
+      );
+    }
+
+    updateLeagueRatingAction();
+  }
   const input = document.getElementById("squad-import-file");
   const status = document.getElementById("squad-import-status");
   const clearButton = document.getElementById(
