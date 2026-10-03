@@ -959,7 +959,7 @@
     const key = challengeCacheKey();
 
     if (!savedPolicySets.has(key)) {
-      const settings = policySettings[selectedDifficulty];
+            const settings = settingsForCurrentSeason();
       const policies = [];
 
       policies.push(
