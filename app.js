@@ -3015,28 +3015,24 @@
   function resetSquadImportSave() {
     currentImportedPlayers = null;
     currentSavedImportId = null;
+    updateLeagueRatingAction();
 
-    if (!importSaveForm || !importSaveButton) {
-      return;
-    }
+    if (!importSaveForm || !importSaveButton) return;
 
     importSaveForm.reset();
     importSaveForm.hidden = true;
     importSaveButton.disabled = true;
     importSaveButton.textContent = "Save Squad Export";
   }
-
   function prepareSquadImportSave(players, record = null) {
-    if (!importSaveForm || !importSaveButton) {
-      return;
-    }
+    if (!importSaveForm || !importSaveButton) return;
 
     currentImportedPlayers = structuredClone(players);
     currentSavedImportId = record?.id ?? null;
 
-    const clubs = [
-      ...new Set(players.map((player) => player.club))
-    ];
+    const clubs = [...new Set(
+      players.map((player) => player.club)
+    )];
 
     importSaveForm.reset();
 
@@ -3055,6 +3051,8 @@
     importSaveButton.textContent = record
       ? "Update Saved Export"
       : "Save Squad Export";
+
+    updateLeagueRatingAction();
   }
 
   function renderSavedSquadImports() {
