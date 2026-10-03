@@ -2569,3 +2569,373 @@
   loadSavedCareers();
   updateDifficultySelection();
 })();
+// FM24 squad export preview. Separate from saved careers.
+(() => {
+  const attributeFields = [
+    ["Acc", "Acceleration"], ["Agi", "Agility"],
+    ["Aer", "Aerial Reach"], ["Agg", "Aggression"],
+    ["Ant", "Anticipation"], ["Bal", "Balance"],
+    ["Bra", "Bravery"], ["Cmd", "Command of Area"],
+    ["Com", "Communication"], ["Cmp", "Composure"],
+    ["Cnt", "Concentration"], ["Cro", "Crossing"],
+    ["Dec", "Decisions"], ["Det", "Determination"],
+    ["Dri", "Dribbling"], ["Fin", "Finishing"],
+    ["Fir", "First Touch"], ["Fla", "Flair"],
+    ["Han", "Handling"], ["Hea", "Heading"],
+    ["Jum", "Jumping Reach"], ["Kic", "Kicking"],
+    ["Ldr", "Leadership"], ["Lon", "Long Shots"],
+    ["Mar", "Marking"], ["Nat", "Natural Fitness"],
+    ["OtB", "Off the Ball"], ["1v1", "One on Ones"],
+    ["Pac", "Pace"], ["Pas", "Passing"],
+    ["Pos", "Positioning"], ["Ref", "Reflexes"],
+    ["TRO", "Rushing Out (Tendency)"], ["Sta", "Stamina"],
+    ["Str", "Strength"], ["Tck", "Tackling"],
+    ["Tea", "Teamwork"], ["Tec", "Technique"],
+    ["Thr", "Throwing"], ["Vis", "Vision"],
+    ["Wor", "Work Rate"]
+  ];
+
+  const clean = (value) => String(value ?? "")
+    .replace(/\s+/g, " ").trim();
+
+  const normalise = (value) => clean(value).toLowerCase();
+
+  const validAttribute = (value) =>
+    /^\d+$/.test(clean(value)) &&
+    Number(value) >= 1 &&
+    Number(value) <= 20;
+
+  function readSquadRows(headers, rows) {
+    if (!rows.length || rows.length > 2000) {
+      throw new Error(
+        "The export must contain between 1 and 2,000 players."
+      );
+    }
+
+    if (rows.some((row) => row.length !== headers.length)) {
+      throw new Error(
+        "Some rows have missing columns. Please export again."
+      );
+    }
+
+    const headings = headers.map(normalise);
+    const metadata = {};
+
+    [
+      "Player", "UID", "Age", "Position",
+      "Club", "Wage", "Preferred Foot"
+    ].forEach((label) => {
+      const index = headings.indexOf(normalise(label));
+
+      if (index < 0) {
+        throw new Error(
+          `Add the ${label} column to your FM view and export again.`
+        );
+      }
+
+      metadata[label] = index;
+    });
+
+    const missing = [];
+
+    const attributeColumns = attributeFields.map(([short, name]) => {
+      const aliases = [short, name].map(normalise);
+
+      if (short === "TRO") {
+        aliases.push("rushing out");
+      }
+
+      const matches = headings.flatMap((heading, index) =>
+        aliases.includes(heading) ? [index] : []
+      );
+
+      if (!matches.length) {
+        missing.push(name);
+      }
+
+      // FM uses "Nat" for nationality AND Natural Fitness.
+      const index = matches.find((candidate) =>
+        rows.some((row) => validAttribute(row[candidate]))
+      ) ?? matches.at(-1);
+
+      return { name, index };
+    });
+
+    if (missing.length) {
+      throw new Error(
+        `Missing attributes: ${missing.join(", ")}. ` +
+        "Add these to your FM view and export again."
+      );
+    }
+
+    const seenIds = new Set();
+
+    return rows.map((row, rowIndex) => {
+      const get = (label) => clean(row[metadata[label]]);
+
+      const name = get("Player")
+        .replace(/\s+-\s+Pick Player$/i, "")
+        .trim();
+
+      const uid = get("UID");
+      const ageText = get("Age");
+      const age = Number(ageText);
+
+      if (!name || !uid || !get("Position") || !get("Club")) {
+        throw new Error(
+          `Player row ${rowIndex + 1} is missing a name, ` +
+          "ID, position or club."
+        );
+      }
+
+      if (seenIds.has(uid)) {
+        throw new Error(
+          `Duplicate player ID for ${name}. ` +
+          "Export each player once."
+        );
+      }
+
+      seenIds.add(uid);
+
+      if (!/^\d+$/.test(ageText) || age < 10 || age > 80) {
+        throw new Error(
+          `${name} has a missing or invalid age.`
+        );
+      }
+
+      const attributes = {};
+
+      attributeColumns.forEach(({ name: attribute, index }) => {
+        if (!validAttribute(row[index])) {
+          throw new Error(
+            `${name}: ${attribute} needs a visible value ` +
+            "from 1 to 20. Check the FM export view."
+          );
+        }
+
+        attributes[attribute] = Number(row[index]);
+      });
+
+      return {
+        uid,
+        name,
+        age,
+        attributes,
+        positions: get("Position"),
+        club: get("Club"),
+        wage: get("Wage"),
+        preferredFoot: get("Preferred Foot")
+      };
+    });
+  }
+
+  function parseSquadExport(html) {
+    const template = document.createElement("template");
+    template.innerHTML = html;
+
+    const table = Array.from(
+      template.content.querySelectorAll("table")
+    ).find((candidate) => {
+      const labels = Array.from(
+        candidate.querySelectorAll("th")
+      ).map((cell) => normalise(cell.textContent));
+
+      return labels.includes("player") && labels.includes("uid");
+    });
+
+    if (!table) {
+      throw new Error(
+        "No FM squad table found. Choose the HTML squad export, " +
+        "not a saved website page."
+      );
+    }
+
+    const headers = Array.from(
+      table.querySelectorAll("th")
+    ).map((cell) => clean(cell.textContent));
+
+    const rows = Array.from(table.querySelectorAll("tr"))
+      .filter((row) => !row.querySelector("th"))
+      .map((row) =>
+        Array.from(row.querySelectorAll("td"))
+          .map((cell) => clean(cell.textContent))
+      )
+      .filter((row) => row.length);
+
+    return readSquadRows(headers, rows);
+  }
+
+  function makeElement(tag, text, className = "") {
+    const element = document.createElement(tag);
+    element.textContent = text;
+    element.className = className;
+    return element;
+  }
+
+  function showImportPreview(players) {
+    const container = document.getElementById(
+      "squad-import-players"
+    );
+
+    container.replaceChildren();
+
+    const clubs = [
+      ...new Set(players.map((player) => player.club))
+    ];
+
+    document.getElementById("squad-import-summary").textContent =
+      `${players.length} players · ${clubs.join(", ")}`;
+
+    players.forEach((player) => {
+      const card = document.createElement("details");
+      card.className = "squad-group";
+
+      card.append(
+        makeElement(
+          "summary",
+          `${player.name} · Age ${player.age} · ${player.positions}`,
+          "squad-player-name"
+        )
+      );
+
+      card.append(
+        makeElement(
+          "p",
+          `${player.club} · ` +
+          `${player.preferredFoot || "Foot not supplied"} · ` +
+          `${player.wage || "Wage not supplied"}`
+        )
+      );
+
+      card.append(
+        makeElement(
+          "p",
+          `FM player ID: ${player.uid}`,
+          "signing-note"
+        )
+      );
+
+      const table = document.createElement("table");
+      table.className = "squad-table";
+      table.setAttribute(
+        "aria-label",
+        `${player.name} attributes`
+      );
+
+      const head = document.createElement("thead");
+      const heading = document.createElement("tr");
+
+      ["Attribute", "Out of 20"].forEach((label) => {
+        const cell = makeElement("th", label);
+        cell.scope = "col";
+        heading.append(cell);
+      });
+
+      head.append(heading);
+
+      const body = document.createElement("tbody");
+
+      Object.entries(player.attributes).forEach(([name, value]) => {
+        const row = document.createElement("tr");
+
+        row.append(
+          makeElement("td", name),
+          makeElement("td", value)
+        );
+
+        body.append(row);
+      });
+
+      table.append(head, body);
+      card.append(table);
+      container.append(card);
+    });
+
+    document.getElementById("squad-import-preview").hidden = false;
+  }
+
+  const input = document.getElementById("squad-import-file");
+  const status = document.getElementById("squad-import-status");
+  const clearButton = document.getElementById(
+    "clear-squad-import-button"
+  );
+
+  if (!input || !status || !clearButton) {
+    return;
+  }
+
+  let readVersion = 0;
+
+  function clearPreview() {
+    document.getElementById("squad-import-preview").hidden = true;
+
+    document.getElementById(
+      "squad-import-players"
+    ).replaceChildren();
+
+    document.getElementById(
+      "squad-import-summary"
+    ).textContent = "";
+  }
+
+  input.addEventListener("change", async () => {
+    const file = input.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    const version = ++readVersion;
+    clearPreview();
+    status.textContent = "Reading your squad export…";
+
+    try {
+      if (!/\.html?$/i.test(file.name)) {
+        throw new Error(
+          "Choose an .html or .htm squad export."
+        );
+      }
+
+      if (file.size > 10 * 1024 * 1024) {
+        throw new Error(
+          "Choose a squad export smaller than 10 MB."
+        );
+      }
+
+      const html = await file.text();
+
+      if (version !== readVersion) {
+        return;
+      }
+
+      const players = parseSquadExport(html);
+      showImportPreview(players);
+
+      status.textContent =
+        `${players.length} players loaded with all 41 attributes. ` +
+        "Select a player to view their details. " +
+        "The file is read on this device; this preview is not saved.";
+    } catch (error) {
+      if (version !== readVersion) {
+        return;
+      }
+
+      clearPreview();
+
+      status.textContent = error instanceof Error
+        ? error.message
+        : "The export could not be read. Please try again.";
+
+      input.value = "";
+    }
+  });
+
+  clearButton.addEventListener("click", () => {
+    readVersion++;
+    input.value = "";
+    clearPreview();
+
+    status.textContent = "Choose a file to preview your squad.";
+    input.focus();
+  });
+})();
