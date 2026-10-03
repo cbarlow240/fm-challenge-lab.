@@ -72,6 +72,67 @@
     }
   ];
 
+  // Historical FM24 club-guide Rating values, not player ratings or media predictions.
+  // Source: https://sortitoutsi.net/football-manager-2024/database
+  const startingClubRatings = Object.freeze(Object.fromEntries(
+    Object.entries({
+      5: "2000082632 93030438",
+      11: "23403819",
+      23: "129132",
+      31: "4300046",
+      37: "78041593",
+      38: "74009641",
+      40: "23318717",
+      41: "74010190",
+      42: "74000850 74036914 351038",
+      43: "34053971 115942 23501368 352718 351050 350443 350954 74010199",
+      44: "1931 355549 1942 1944 130939 74000966",
+      45: "2000015950 129129 23501362 2000288034 23500747 130170 130171 350939 352119 354575 1928 351079",
+      46: "7642394 5623377 23501094 130167 350949 74057168 350942 1936 74009639 74001453 74032559 74010202 36518155",
+      47: "40012017 23501281 23501076 414230 1280 130172 416240 2537 4300229 350239",
+      48: "135356 130032 130159 52004979 130173 7800917 93050950 4300678 93018994 4303997 2608 1106011 8104684 610653 1927 1937 1301340",
+      49: "5623165 40038846 47001127 23501271 23501090 23500764 414171 414179 116303 2158 1105064 2579 2558 611596 2639 2621 1938",
+      50: "23461802 5512155 40035631 5512183 40030275 5623127 135371 414175 116334 23136391 2580 4300731 2634 1101812 93030437 2609 2625 1301344 637 1932 351064",
+      51: "647 23387230 23501058 23501071 1900709 4203036 2514 1827 68001174 1829 93063381 611417 93019001 1800 2566 2598 2645 68017422 2557",
+      52: "5638118 7400961 40026598 2000278767 47085621 23501107 1272 130162 416241 130031 1784 4300728 93056640 1805 802270 4300353 93056988 6410420 4300771 68002003 2159 616339 8100363 2506 4300754 2593 2176 358409",
+      53: "7481153 409 2000082636 523 611 657 5103927 133677 2000027899 5622735 5622859 135528 485706 8403700 130176 52098789 5626771 1810 2151 1836 2643 93053134 1804 2161 93154509 2627 4300358 619816 2678 71050719 74032523 114804 1943 36500003",
+      54: "7500399 1035522 2104 27155310 534 27147895 5103640 90018556 5103719 8325039 5622732 2000004192 5622744 41010810 41021342 5622866 2000115816 23486440 130174 416239 1275 130175 5201742 7800516 1102540 1841 6410294 4300655 1103728 1101151 4300018 1801 68020055 619060 619064 1840 485831 74032529 36512955 36500008",
+      55: "17026902 7500394 22033716 2000078112 2000082648 27017889 541 2139 2141 27128372 928485 5103697 90060453 5103900 5103663 712 716 5103671 733 112031 5100145 133669 2000003588 2000004194 5622745 7747141 5623382 41061715 135362 1101511 1273 83301114 4100013 589 1300918 57031764 1558 1562 5395665 68002700 1818 4300744 8113017 2603 2150 2658 1102772 4302207 70043025 71033268",
+      56: "485662 130881 2000125448 7483392 2000255116 23318347 23492352 552 5100019 5100088 635 90018558 8325012 715 608 134732 629 5100123 5103643 5100186 5100225 5100139 129191 129170 129208 133676 7400959 135512 135491 135534 2000183212 135521 135500 41003984 7746334 107352 792316 788856 786525 135359 23396078 5623370 1288 1432 55001075 2454 84107097 2493 725038 725060 83163969 734119 1300920 587 1300916 2000082862 1540 5201527 1554 1600 1000037 1609 63010727 814632 93097541 8104219 1823 4300347 1103878 93030439 2165 130367",
+      57: "1300134 485682 485671 34039002 23366052 930105 933945 512 615 5100031 29066004 29130446 82070144 30019954 30015287 5100132 8325049 727 514129 510222 7400958 39002395 2000185211 41001022 107330 775154 775160 107354 135382 135368 1274 116331 52065322 2455 83111318 84107152 83202832 2473 590 5100326 52086656 5201786 1598 63000888 1613 2000183268 63000895 7563786 67000108 618372 93058662 93143640 2518 2175 2172 4300693 70080983 71016304 1888 2000190107 2000032127 36500015 36500001 36510163",
+      58: "1300111 17037713 17033577 485667 1300119 224 206 130856 7500915 7506018 930248 539 507 5100217 5100015 30021186 5100078 5100210 813 129185 129659 7841979 7840005 41060486 135494 2000273329 107346 788847 788933 107342 135351 135377 1276 801870 1479 734125 2427 8878352 2450 84108481 57065617 57061123 1599 1548 1564 1588 1601 2000260278 65028800 65033935 814071 4212278 814898 67259056 814840 6410547 620906 1833 93052720 68017475 68012711 70080976 71100093 484458 36500009",
+      59: "485674 17041311 202 204 18104893 2000181440 19273578 22040114 1300197 138447 23340823 943835 508 562 5100192 5100163 36006475 7840110 1300640 39001207 7840114 1079 135497 7741454 135515 7861698 7860423 1094 7862560 788910 766164 1339 755792 1412 53000245 1399 2435 7000097 729707 733870 2401 109042 2423 7000008 55012090 729461 84107162 2479 741496 2478 7542454 57057268 63000893 1301169 63011669 138174 5680075 67040945 109009 7446432 67129170 67129155 93052555 2168 2668 2170 1868 71046355 71100095 71026832 5316335 2000032124 71091269",
+      60: "17000059 17040498 188 282 539814 22067423 1300201 353 7500389 130781 2000183928 480 8601358 643 5100157 90002300 669 743 822 687626 678102 7840141 3400446 135531 116145 5622862 5622746 42106427 7868750 42102908 1088 792248 776288 786400 107339 483870 106696 1414 2428 55027091 2413 84107058 55056925 2437 2446 55038928 1300922 57053599 57110301 57048549 1583 1590 23501219 1624 63011666 62126751 65034030 65039591 65045804 814437 814059 4212156 102029 1503465 7443983 4203018 1503308 4212400 67224671 67034790 2000111526 71017165 71100478 36510164",
+      61: "17004083 8160007 6600094 19220160 22019542 20502997 20502986 2000238561 661680 136197 136153 136281 136237 136208 25001307 520 925050 502 573 601 109212 5103760 655 703 714 707 129179 514046 129658 676958 36018144 7521266 38004848 7521273 1072 39048732 7742801 116144 5622879 5622747 2000185227 7862785 42006473 7862872 7861702 783801 107341 1277 1279 1281 1328 1294 1416 1291 1298 1316 53000361 1403 1409 2720 725011 1486 55001072 2466 2471 2447 7000476 2444 598 593 52085341 57151105 57066631 57131211 57055056 1519 1539 5410640 5777059 138169 64000667 5688086 2000197676 65025773 65028789 65025781 2000034500 65045816 2000127078 4212901 7442930 1667 4212275 1503260 6703397 67016709 4212118 67173955 67090031 2000282424 67291347 814968 1697 6706364 93055260 1825 8103641 1788 1808 1863 70080498 70081535 1867 450550 70078650 130351 71076802 1940 36500002",
+      62: "5602973 1300113 5410568 7485067 1300125 254 2000181439 536364 536240 19270038 116384 20502989 2000078066 131162 23463130 5652987 116156 478 493 5100153 29106539 661 30010181 739 744 33007394 677885 36000499 1300565 23405909 1049 38019804 1063 1300641 7840140 1073 5622736 41021352 2000090667 41051597 1300665 7864760 107328 788854 107289 107305 775187 786372 106694 1278 1351 1355 1374 1387 1397 759312 1318 1332 5000207 77029556 1446 1300879 714240 7000003 55001110 2484 2463 83314396 109037 1495 592 57080206 57141891 57000777 1551 1563 136464 7560016 63032360 7580828 7581081 7580709 7582048 5410639 1638 1641 5682979 66010583 7452056 109011 1767 4212313 4212292 4212151 4212102 67181500 2097 7446368 814662 2000034640 2000034652 1676 67000113 67276809 4200483 1792 1807 1843 2180 459181 70078180 8478376 454194 70081334 70061794 70002930 70081029 70061827 130868",
+      63: "5604963 5601448 16036182 130875 130879 130877 2000022413 2000173149 2000181444 292 19363420 22034856 20502988 20502985 20502987 130784 23199255 412 416 131229 24021028 430 650441 24059190 24014012 126423 136158 516 27035536 930210 2121 542 640 581 731 605 694 521643 817 521105 1300376 129168 881 2000020418 2000188795 129699 129704 129657 133674 7521304 7521258 7521283 38037178 1071 1074 41053239 1082 1413262 780521 775165 786558 786384 107301 788904 485686 8404703 2000193551 136013 51045865 1282 1284 1330 109106 750633 130127 2410 55000307 2405 1484 2407 4102502 597 57153289 2000105301 1502 1522 58148228 130510 5203872 1541 1542 1572 5743879 131125 128656 1627 5410637 1636 65028128 65010405 66039783 136423 66002956 66032900 4200564 67040821 4200575 1740 4212243 4212419 2000112559 4212395 67118675 109023 4212372 814350 1786 1791 1798 1842 1101813 1831 137897 137912 70081336 457419 453682 71098591 8825225 1915",
+      64: "137958 5609646 16077360 527945 2000173150 2000173154 169 2000181438 319141 301284 22003932 7500388 352 354 20503663 5250437 130779 131135 23487243 34039025 2200063 661027 1300245 24059986 130859 5645563 109210 5100047 687 723 725 1300378 818 976 38013493 7524224 1056 38017639 1070 7861687 1102 1130 7983711 2217 832138 700206 831366 1187 107303 786547 775166 51008744 51052402 51047275 5666338 5661013 1022 1283 1295 1392 1301 1344 717313 1451 714221 717332 2000040208 2460 2456 2393 2440 2420 588 599 57000252 57161868 1301102 58046584 130515 1557 1571 1591 136468 5740640 5742993 5774738 62085128 62063172 120783 1615 7563783 63025380 65039207 66010556 67060765 2092 814086 67083655 1752 2094 4200572 1750 67041048 1776 67156323 2000034642 1684 1503411 4212115 4202262 1699 67173952 2677 619076 70080997 130340 70054564 1301254 71075348 5512789 5512556 130852 5512787 36500004",
+      65: "426430 15086549 130837 137947 16123919 6002479 307 485665 216 900678 301208 301306 107240 7501927 22087833 130797 75035851 130796 5250433 130785 130789 5260969 76045729 2000273045 5261737 442 126302 631 636 641 646 658 729 634 811 510307 2068 855 1991 874 2085 978 36043527 1059 4300030 1078 116140 42074476 1300671 1142 43156731 831197 1153 43124315 1162 1413274 700059 1104 2185 43152205 2212 43007150 2216 7983747 43269673 43079093 107314 786559 107283 2000017421 51039162 1005 1042 1430 1336 1300612 77002090 54003060 714200 129585 2384 2404 2394 55056835 58148224 130550 130511 58066512 1577 1586 5743000 136460 5766280 5754056 130873 7560050 65010424 2000067907 65036389 66029603 5710867 106812 6706369 67105977 67243415 109027 4212284 109005 1723 1665 67148466 4212111 67152828 1811 1844 70054558 70078171 70061796 70054576 130355 70078177 1881 70042997 2000053380",
+      66: "8457492 1300491 15086550 5605072 101154 303 199 107205 107230 301323 319160 341 351 356 104363 130788 406 23447397 414 5261738 309353 76003535 1300309 465 5640780 504 521 4001706 5103834 607 616 109206 656 816 857 843 827 2075 2083 876844 979 975 1054 130823 1069 1076 42027989 7860421 1089 1096 1091 1145 43006436 108985 2219 2231 1131 108986 700060 7983734 43204872 43210768 7100042 51008732 51051210 1043 1289 103283 1396 800118 5290571 96012813 129580 96000060 129565 710017 129567 55000308 591 596 58145316 1530 130501 130561 5742987 5748006 5744631 5745180 1951 63035357 130872 1620 5410642 7581525 62176216 2000044276 131270 65039568 2000038055 130775 200373 66034891 1743 1746 814935 1689 4203033 814590 4212406 67290895 67174187 67070379 67089705 67180027 2153 1839 1848 1101431 137917 130820 1862 130354 70028001 71016825 71105155 5512782 78014931 5512780 130848 115039",
+      67: "952724 130220 123001 15004168 16309710 160 159 298 18008817 233 248 107203 7506471 22033833 138156 5250445 5250442 23292170 116403 130804 130803 312 309348 658353 1300307 5647950 467 524 481 624 651 689 710 5110769 681 151027 693 5103842 839 860 838 955 121201 121183 879516 959 935 2249 943 957 879643 129661 38042162 1068 1066 1101637 1083 1087 1090 700198 2218 1144 2191 43018336 43065074 788837 47024031 47053664 102356 106028 1002 1017 994 1044 1380 1312 308104 77017082 129577 1454 715911 715912 1458 2387 1477 55000306 2391 2395 1596 1592 1301374 1954 120779 128652 2000034502 66006663 66011708 106813 2093 4203006 4212228 1666 67016725 1751 1716 2157 1817 1857 5720002 454840 453567 455675 70061824 1884 71099430 71045065 1923 1924",
+      68: "3101508 3101514 1300489 1300490 15035999 106363 228 539089 301304 107210 328 2106553 120921 5260325 309346 76019314 76033284 5261740 130801 662735 106749 470 472 926867 626 674 675 698 702 720 741 85052735 876 2072 873 2009 904 933 121196 958 1300567 130821 38004842 7521327 1080 1095 2229 1157 1158 2222 43036943 2193 1138 2224 1194 23195015 1000 1001 1003 1033 1326 1404 763464 5290626 5290560 77016717 710052 1462 1300881 1474 2406 736258 2386 2416 1500 7540447 57170797 57152989 57086204 57113687 130496 58126754 130498 1555 1581 1593 1597 1556 62030404 1950 6400020 62031842 62159794 64000753 1632 1630 130772 65035889 1646 5705626 106818 5707530 109017 1695 1675 810130 1739 1796 2588 2164 1809 514173 1874 70016859 1873 130346 130380 70061804 484460 1917 1918 78027478 5512779 1925",
+      69: "3101504 102482 14046675 102486 3101502 3101520 15051934 137962 16324690 278 8157175 299 121265 107216 332 318860 19398655 301302 311086 334 22070174 349 130795 120924 5250434 400 130780 104359 130787 120936 104386 24013516 129859 447 468 475 483 620 719 737 742 3501956 2048 888 949 8714658 6000005 6000006 36077318 129665 129666 129667 36136195 1052 1062 1060 1064 1154 1116 1120 2220 1108 707654 1191 107309 1188 5661084 1011 1032 986 1007 1024 1047 1341 1365 53021327 1410 1426 303816 1452 1469 1300885 710032 1468 2388 1493 2433 2424 2422 57143011 57065222 57151160 1515 58145944 130525 1580 1584 1643 130774 5709008 106817 106809 1668 4212307 1690 1704 1803 1806 1852 130304 1876 70042969 70108557 70095984 71063212 2000028043 71100094 1301293 2000152066 116309 5512337 5512559",
+      70: "102476 14004603 952734 958199 3101457 102472 108574 14031205 14008993 108531 14037231 102487 3102137 137959 16034828 184 194 301102 325 107236 331 130778 104362 130798 120064 130802 130800 76034968 440 463 136156 473 533 551 697 606 613 628 695 696 699 400362 831 852 840 2062 867 2090 50034825 937 911 694366 682130 38013478 38032696 2195 43058693 1181 2188 107313 1186 1189 1192 107285 1184 1196 850022 1004 1015 1037 1039 308107 5290593 5290629 714209 717327 2000263090 1476 2000104441 57110237 1301106 130509 1536 1575 1301372 5747642 1957 1614 1623 1637 1629 1639 1645 130777 6706354 7452072 4212168 2096 1797 1802 137904 70055738 130338 71100066 1902 1904 2000153732 72000789 5512793 8825223 1926",
+      71: "14064697 102490 108514 102470 3101435 956891 108546 102466 3100019 108510 108517 952707 86 102957 16057026 137973 231 232 257 289 107208 320 19144990 301344 130782 5250019 404 130790 421 308516 5261741 420 1300301 131289 545 930621 2142 704 614 645 877 2237 121200 2233 121208 129692 980 1105 1113 2205 1164 829172 2227 1185 1193 1190 107296 1012 1036 1046 1376 1422 77005796 1449 129583 1459 2403 2448 57171586 1513 57111101 58137861 1523 58127493 1533 1573 106808 4212207 4212197 1727 1705 1737 1780 1855 1856 105898 130360 1875 20041327 1903 1913 20030048 20046403 72000160 980543 1910 72023746 4400014 1919 1920 130849",
+      72: "952695 14018428 102493 152 154 155 263 280 288 102555 301151 104749 327 338 22069955 403 309345 429 425 423 569 609 664 701 709 875 824 851 828 1971 2253 928 945 121198 1085 1097 1124 1147 1183 1195 5661074 1258 136007 136014 1014 1378 117754 5290566 303815 1450 1455 1456 2000030636 1480 2390 2389 2438 1485 7540205 1301104 58145347 1622 1644 130776 810090 4212294 1783 1787 1851 1200101 1854 458718 1865 130342 130362 1878 130382 72047296 72053036 2000032491 108893 1905 72000112 1907 72049313 1909 72041885 72014193 72019000 72014006",
+      73: "80 102462 87 102491 92 3101516 3100018 102467 3101453 262 258 250 107201 104776 340 22003969 399 8830831 417 427 426 477 482 496 526 619 625 686 700 721 724 927 931 2245 899 946 969 1093 1110 1119 2215 1173 106844 107280 1198 106027 51051219 2000017276 1260 1025 1353 722115 1471 2443 2397 1481 2383 1952 1709 4200566 4203003 1678 1728 1849 1858 1853 130341 130344 130366 130289 975489 1921 1922",
+      74: "78 102474 108526 88 102485 91 95 102489 98 156 168 318915 419 441 474 476 932443 612 639 732 1992 856 2005 844 108997 880295 921 2247 920 1055 1123 1125 2194 1156 1167 1179 1255 116204 106029 136021 1009 1010 1293 729500 1494 1520 58029064 1525 1955 1660 1741 1744 1850 450573 1864 458631 1885",
+      75: "81 89 90 96 186 321 104750 317 339 432 433 677 665 685 691 722 734 2061 859 846 2047 872 886 905 947 983 982 1126 2199 1254 1259 102355 1518 1529 1753 1707 1717 1747 1749 1680 1816 1847 130343 1895",
+      76: "82 85 93 158 256 107206 315 319 324 335 708 667 916 948 967 1114 2201 1141 1253 104360 991 1569 1570 1688 1661 1714 1725 1879 72052048",
+      77: "94 316 326 329 337 505 858 865 884 2238 912 918 981 1132 1166 1174 1178 1013 1301108 1682 1772 1775",
+      78: "314 322 323 622 740 671 673 713 871 862 908 944 879226 960 121182 961 1149 3800256 1257 992 1028 1488 1710 1726 1685 1729 1866",
+      79: "600 642 650 654 692 866 826 1111 1664 1724 814089 1871",
+      80: "617 735 1129 1478 1489 1733 1759 1870",
+      81: "603 618 901 91013388 1106 1100 1487 1742 1777",
+      82: "907 1139 1140 1099",
+      83: "630 680 688 728 1150 1687",
+      84: "868 1135",
+      85: "676 915 1708",
+      86: "602 1736",
+      87: "679",
+    }).flatMap(([score, ids]) => ids.split(" ").map(id => [id, Number(score)]))
+  ));
+
   const clubs = [];
   let clubPoolReady = false;
   let clubPoolError = "";
@@ -118,6 +179,8 @@
         league: preview?.league || source.league,
         leagueId: source.leagueId,
         leagueSize: source.leagueGroupSize,
+        guideRating: startingClubRatings[source.fmId] ?? null,
+        guideSource: database.leagues.find(league => league.id === source.leagueId)?.source || database.source,
         // Decorative colours for placeholder badges, not official club colours.
         colour: preview?.colour || colours[Number(source.fmId) % colours.length],
         introduction: preview?.introduction ||
@@ -182,19 +245,22 @@
         notice, byId("briefing-screen").querySelector(".briefing-tabs")
       );
     }
-
-    const available = hasClubBriefing();
-    notice.hidden = available;
-    byId("briefing-screen").querySelector(".briefing-tabs").hidden = !available;
-    byId("briefing-screen").querySelector(".preview-note").hidden = !available;
-    if (!available) {
-      const heading = textElement("h3", "", "Your club is selected");
+    const squadAvailable = hasClubBriefing();
+    notice.hidden = squadAvailable;
+    byId("briefing-screen").querySelector(".briefing-tabs").hidden = false;
+    ["tactics", "squad"].forEach(tab => {
+      byId(`${tab}-tab-button`).hidden = !squadAvailable;
+      byId(`${tab}-tab-button`).disabled = !squadAvailable;
+    });
+    byId("briefing-screen").querySelector(".preview-note").hidden = !squadAvailable;
+    if (!squadAvailable) {
+      const heading = textElement("h3", "", "Your challenge is ready");
       heading.id = "club-data-notice-title";
       notice.replaceChildren(
         heading,
         textElement("p", "", `${selectedClub.name} · ${selectedClub.league}`),
-        textElement("p", "", "You can save this club choice as a career or return to the draw and roll again."),
-        textElement("p", "signing-note", "This club’s FM24 squad and ratings are not loaded yet. Its formation, player roles, transfer rules and season challenge will follow once its club data is available.")
+        textElement("p", "", "Open Transfer Policies and Season Challenge, then save this career to keep its rules fixed. Future seasons unlock after you record your results."),
+        textElement("p", "signing-note", "This club’s squad, player ratings and tactics still need its FM24 player data.")
       );
     }
   }
@@ -362,7 +428,7 @@
     const arrow = textElement("span", "", "→");
     arrow.setAttribute("aria-hidden", "true");
     byId("view-challenge-button").replaceChildren(
-      document.createTextNode(hasClubBriefing() ? "View My Challenge " : "View Club Briefing "),
+      document.createTextNode("View My Challenge "),
       arrow
     );
 
@@ -768,15 +834,9 @@
   }
 
     function switchTab(tab) {
-    if (!hasClubBriefing()) {
-      activeTab = "overview";
-      ["tactics-panel", "squad-panel", "policies-panel", "season-panel"].forEach(id => {
-        byId(id).hidden = true;
-      });
-      announce("Club choice ready to save. The club’s full challenge briefing is not available yet.");
-      return;
+    if (!hasClubBriefing() && ["tactics", "squad"].includes(tab)) {
+      tab = "season";
     }
-
     activeTab = tab;
 
     const panels = {
@@ -813,14 +873,14 @@
       renderPolicies();
 
       announce(
-        "Season 1 transfer policies. Follow all rules together; " +
+        `Season ${getSeasonProgress().season} transfer policies. Follow all rules together; ` +
         "existing players are not affected."
       );
     } else if (tab === "season") {
       renderSeasonChallenge();
 
       announce(
-        "Season 1 objectives and provisional prediction. " +
+        `Season ${getSeasonProgress().season} objectives and provisional prediction. ` +
         "Bonus objectives are optional."
       );
     } else {
@@ -849,7 +909,7 @@
     byId("signing-form").reset();
 
     renderBriefingAvailability();
-    switchTab("tactics");
+    switchTab(hasClubBriefing() ? "tactics" : "season");
             byId("season-results-form").reset();
     byId("season-results-form").hidden = true;
     byId("season-results-status").textContent = "";
@@ -1026,7 +1086,7 @@
       category: "arrivals",
       title: "Make every signing count",
       rule:
-        `Bring in no more than ${limit} players during Season 1. ` +
+        `Bring in no more than ${limit} first-team players during Season 1. ` +
         "Permanent signings and incoming loans both count.",
       reason:
         "A smaller recruitment window encourages you to prioritise " +
@@ -1036,7 +1096,7 @@
         `would use all ${limit} places.`,
       clarification:
         "Contract renewals, youth promotions, and your own players " +
-        "returning from loan do not count as new arrivals."
+        "returning from loan do not count as new arrivals. Academy-only recruitment does not count unless the player joins the first-team squad that season."
     };
   }
 
@@ -1051,8 +1111,8 @@
         "Keeping a reserve gives your club room to manage unexpected " +
         "costs while still strengthening the squad.",
       example:
-        `With a £1 million allowance, your combined guaranteed fees ` +
-        `must stay at or below £${(percent * 10000).toLocaleString("en-GB")}.`,
+        `With a 1,000,000 allowance in your save's currency, combined ` +
+        `guaranteed fees must stay at or below ${(percent * 10000).toLocaleString("en-GB")}.`,
       clarification:
         "Record the available transfer budget when you start. Add any " +
         "extra funds the board actually makes available during the season, " +
@@ -1093,14 +1153,14 @@
         "Recruit within the club’s existing salary structure " +
         "rather than depending on expensive new stars.",
       example:
-        `If the starting highest basic wage is £20,000 per week, ` +
-        `the limit is £${(20000 * percent / 100).toLocaleString("en-GB")} ` +
+        `If the starting highest basic wage is 20,000 per week in your save's currency, ` +
+        `the limit is ${(20000 * percent / 100).toLocaleString("en-GB")} ` +
         "per week for each arrival.",
       clarification:
         "For a loan, count only the basic wage your club pays. " +
         "Record the starting highest wage once; new signings cannot raise " +
         "this limit. Existing players and their renewals are exempt. " +
-        "The board’s overall wage budget still applies."
+        "The board’s overall wage budget still applies. If your club has no existing paid basic wages, this percentage ceiling does not apply; use the board’s wage budget."
     };
   }
 
@@ -1430,52 +1490,135 @@
     };
   }
 
-  function getSeasonChallenge() {
-    const key = challengeCacheKey();
+  // Product estimates; the source guide's club Rating is not an FM media prediction.
+  function clubStrengthEstimate() {
+    const peers = clubs.filter(club => club.leagueId === selectedClub.leagueId &&
+      Number.isFinite(club.guideRating) && club.guideRating > 0);
+    const size = getSeasonProgress().leagueSize;
+    const rating = selectedClub.guideRating;
+    if (!Number.isFinite(rating) || peers.length < 2) {
+      return { finish: Math.ceil(size / 2), sourceAvailable: false };
+    }
+    const stronger = peers.filter(club => club.guideRating > rating).length;
+    const tied = peers.filter(club => club.guideRating === rating).length;
+    // Tied scores share their average rank. Scale around any unscored reserves.
+    const averageRank = stronger + (tied + 1) / 2;
+    return {
+      finish: Math.max(1, Math.min(size,
+        Math.round(1 + (averageRank - 1) / (peers.length - 1) * (size - 1)))),
+      sourceAvailable: true
+    };
+  }
 
-    if (!savedSeasonChallenges.has(key)) {
-            if (getSeasonProgress().season > 1) {
-        savedSeasonChallenges.set(
-          key,
-          createAdaptiveSeasonChallenge()
-        );
-
-        return savedSeasonChallenges.get(key);
+  function createLeagueSeasonChallenge() {
+    const progress = getSeasonProgress();
+    const previous = progress.history.at(-1);
+    const size = progress.leagueSize;
+    const strength = clubStrengthEstimate();
+    let baseline = strength.finish;
+    let basis = "A rough middle-of-the-table starting estimate is used because club strength data is missing.";
+    if (strength.sourceAvailable) {
+      basis = `The FM24 club guide's relative ratings suggest a starting position of ${ordinal(baseline)} in this league group. Tied ratings share an average rank.`;
+    }
+    if (previous) {
+      if (previous.outcome === "promoted") {
+        baseline = Math.ceil(size * 0.75);
+        basis = "Promotion brings stronger opposition, so the starting estimate allows for a season of consolidation.";
+      } else if (previous.outcome === "relegated") {
+        baseline = Math.max(1, Math.round(size * 0.3));
+        basis = "After relegation, the starting estimate allows for a stronger finish while you rebuild.";
+      } else {
+        baseline = Math.round(1 + (previous.finish - 1) /
+          (previous.leagueSize - 1) * (size - 1));
+        basis = `Your previous finish of ${ordinal(previous.finish)} is the starting point for this season's estimate.`;
       }
-
-      const profile = clubSeasonProfiles[selectedClub.id];
-      const target = profile.targets[selectedDifficulty];
-      const bonusSettings = seasonBonusSettings[selectedDifficulty];
-
-      const mainObjective = createMainObjective(target);
-
-      const bonuses = [
+    }
+    const policies = getPolicies();
+    const pressure = policies.filter(policy =>
+      ["age", "wages", "budget"].includes(policy.category)).length;
+    const restrictionAdjustment = Math.round(pressure * (size - 1) * 0.025);
+    const forecast = Math.max(1, Math.min(size, baseline + restrictionAdjustment));
+    const offsets = {
+      rookie: Math.max(1, Math.round((size - 1) * 0.15)),
+      professional: 0,
+      veteran: -Math.max(1, Math.round((size - 1) * 0.08)),
+      legendary: -Math.max(1, Math.round((size - 1) * 0.15))
+    };
+    const recovery = previous && !previous.mainAchieved ? 1 : 0;
+    const target = Math.max(1, Math.min(size, baseline + offsets[selectedDifficulty] + recovery));
+    const rates = { rookie: 1, professional: 1.2, veteran: 1.4, legendary: 1.6 };
+    const goalRate = rates[selectedDifficulty];
+    return {
+      model: "league-relative-v1",
+      targetFinish: target,
+      goalRate,
+      goalDifferenceTarget: 0,
+      mainObjective: {
+        title: target === 1 ? `Finish first in ${progress.league}` : `Finish ${ordinal(target)} or higher`,
+        description: `Finish ${ordinal(target)} or higher in the main regular-season ${progress.league} table for your club's group (${size} clubs). Use the table before play-offs or championship splits. In competitions with separate league phases, use the first full league phase consistently. Cup results do not decide this objective.`
+      },
+      bonuses: [
         {
-          title: bonusSettings.cupTitle,
-          description: bonusSettings.cupDescription
+          title: "Finish with a positive or level goal difference",
+          description: "Score at least as many goals as you concede in that regular league phase. Cup and play-off matches do not count."
         },
         {
-          title: `Score ${bonusSettings.goals} league goals`,
-          description:
-            `Score at least ${bonusSettings.goals} goals across the ` +
-            "regular Championship league season. Cup matches and " +
-            "play-off matches do not count."
+          title: `Average at least ${goalRate.toFixed(1)} league goals per match`,
+          description: `Score at least ${goalRate.toFixed(1)} goals per match across the same regular league phase. This scales to the number of games you play.`
         }
-      ];
+      ],
+      prediction: {
+        finish: forecast,
+        beatTarget: forecast === 1 ? "Match it: finish first" : `${ordinal(forecast - 1)} or higher`,
+        explanation: `${basis} Your ${policies.length} recruitment ${policies.length === 1 ? "rule" : "rules"} ${restrictionAdjustment > 0 ? `add a conservative allowance of ${restrictionAdjustment} ${restrictionAdjustment === 1 ? "position" : "positions"} to the forecast` : "are included without changing its rounded position"}. ${difficultyNames[selectedDifficulty]} sets your main target at ${ordinal(target)} or higher. ${recovery ? "A missed target gives you a little more rebuilding room this season. " : ""}This is a provisional estimate, not FM's media prediction or a match simulation.${forecast === 1 ? " First place is the highest possible league finish, so you can match this prediction." : ""}`
+      }
+    };
+  }
 
-      const prediction = createPrediction(
-        profile,
-        getPolicies(),
-        target
-      );
+  function updateSeasonResultFields() {
+    const form = byId("season-results-form");
+    const modern = getSeasonChallenge().model === "league-relative-v1";
+    const cup = form.elements.namedItem("faCupRound");
+    cup.closest("label").hidden = modern;
+    cup.disabled = modern;
+    cup.required = !modern;
+    if (modern) cup.value = "0";
+    const fields = form.querySelector(".season-results-fields");
+    [
+      ["leagueMatches", "Regular-season league matches played", 1, 200],
+      ["leagueGoalsConceded", "Regular-season league goals conceded", 0, 1000]
+    ].forEach(([name, labelText, min, max]) => {
+      let input = byId(`result-${name}`);
+      if (!input) {
+        const label = textElement("label", "signing-field", labelText);
+        input = document.createElement("input");
+        input.id = `result-${name}`;
+        input.name = name;
+        input.type = "number";
+        input.className = "squad-input";
+        input.min = String(min);
+        input.max = String(max);
+        input.step = "1";
+        label.append(input);
+        fields.append(label);
+      }
+      input.closest("label").hidden = !modern;
+      input.required = modern;
+      input.disabled = !modern;
+    });
+  }
 
-      savedSeasonChallenges.set(key, {
-        mainObjective,
-        bonuses,
-        prediction
-      });
+
+  function getSeasonChallenge() {
+    const key = challengeCacheKey();
+    if (!savedSeasonChallenges.has(key)) {
+      const previous = getSeasonProgress().history.at(-1);
+      // Older saved demo careers retain their existing cup objectives.
+      const legacy = previous && previous.challenge?.model !== "league-relative-v1" && hasClubBriefing();
+      savedSeasonChallenges.set(key, legacy
+        ? createAdaptiveSeasonChallenge()
+        : createLeagueSeasonChallenge());
     }
-
     return savedSeasonChallenges.get(key);
   }
 
@@ -1491,6 +1634,8 @@
     const bonusContainer = byId("bonus-objective-list");
     bonusContainer.replaceChildren();
 
+    byId("season-panel").querySelector(".preview-note").textContent =
+      "Season targets and forecasts are provisional estimates. Your saved rules stay fixed until you finish the season.";
     challenge.bonuses.forEach((bonus, index) => {
       const card = document.createElement("article");
       card.className = "bonus-card";
@@ -1510,8 +1655,15 @@
     byId("prediction-beat-target").textContent =
       challenge.prediction.beatTarget;
 
-    byId("prediction-explanation").textContent =
-      challenge.prediction.explanation;
+    const explanation = byId("prediction-explanation");
+    explanation.textContent = challenge.prediction.explanation;
+    if (challenge.model === "league-relative-v1" && getSeasonProgress().season === 1) {
+      const link = textElement("a", "", "FM24 club guide");
+      link.href = selectedClub.guideSource;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      explanation.append(document.createTextNode(" "), link);
+    }
   }
 
   byId("season-tab-button").disabled = false;
@@ -1629,6 +1781,12 @@
 
     return Boolean(
       challenge &&
+      (challenge.model !== "league-relative-v1" || (
+        Number.isInteger(challenge.targetFinish) && challenge.targetFinish >= 1 &&
+        challenge.targetFinish <= (career.progress?.leagueSize || 24) &&
+        Number.isFinite(challenge.goalRate) && challenge.goalRate >= 0.5 && challenge.goalRate <= 5 &&
+        challenge.goalDifferenceTarget === 0 && challenge.bonuses?.length === 2
+      )) &&
       challenge.mainObjective &&
       typeof challenge.mainObjective.title === "string" &&
       typeof challenge.mainObjective.description === "string" &&
@@ -1642,7 +1800,7 @@
       challenge.prediction &&
       Number.isInteger(challenge.prediction.finish) &&
       challenge.prediction.finish >= 1 &&
-      challenge.prediction.finish <= 24 &&
+      challenge.prediction.finish <= (career.progress?.leagueSize || 24) &&
       typeof challenge.prediction.beatTarget === "string" &&
             typeof challenge.prediction.explanation === "string" &&
       isValidSeasonProgress(career.progress)
@@ -1716,10 +1874,10 @@
       difficulty: selectedDifficulty,
       createdAt: existing ? existing.createdAt : now,
       updatedAt: now,
-      briefingStatus: hasClubBriefing() ? "preview" : "club-selected",
+      briefingStatus: hasClubBriefing() ? "preview" : "challenge-ready",
       squad: structuredClone(getSquad()),
-      policies: hasClubBriefing() ? structuredClone(getPolicies()) : [],
-      challenge: hasClubBriefing() ? structuredClone(getSeasonChallenge()) : null,
+      policies: structuredClone(getPolicies()),
+      challenge: structuredClone(getSeasonChallenge()),
       progress: structuredClone(getSeasonProgress())
     };
   }
@@ -1849,7 +2007,7 @@
           career.briefingStatus === "club-selected"
             ? `${difficultyNames[career.difficulty]} · Club choice saved`
             : `${difficultyNames[career.difficulty]} · Season ${career.progress?.season || 1} · ` +
-              `${career.squad.players.length} players`
+              (career.briefingStatus === "challenge-ready" ? "Challenge saved" : `${career.squad.players.length} players`)
         ),
         textElement("p", "career-saved-date", `Last saved: ${date}`),
         actions
@@ -1921,8 +2079,10 @@
 
     const key = challengeCacheKey();
 
-    savedPolicySets.set(key, structuredClone(career.policies));
-    savedSeasonChallenges.set(key, structuredClone(career.challenge));
+    if (career.briefingStatus !== "club-selected") {
+      savedPolicySets.set(key, structuredClone(career.policies));
+      savedSeasonChallenges.set(key, structuredClone(career.challenge));
+    }
 
     const usedIds = [
       ...squad.startingIds,
@@ -1949,6 +2109,7 @@
     byId("save-career-button").textContent = "Save Career";
 
     openBriefing();
+    if (career.briefingStatus === "club-selected") persistActiveCareer();
   }
 
   function returnFromCareers() {
@@ -2015,7 +2176,7 @@
     byId("careers-status").textContent =
       hasClubBriefing()
         ? `${name} saved privately. Future squad changes save automatically.`
-        : `${name} saved privately. You can return to this club choice from My Careers.`;
+        : `${name} saved privately. Your rules and objectives are saved with this career.`;
 
     byId("careers-title").focus({ preventScroll: true });
   });
@@ -2141,6 +2302,10 @@
       Number.isInteger(entry.goals) &&
       entry.goals >= 0 &&
       entry.goals <= 1000 &&
+      (entry.challenge?.model !== "league-relative-v1" || (
+        Number.isInteger(entry.matches) && entry.matches >= 1 && entry.matches <= 200 &&
+        Number.isInteger(entry.goalsConceded) && entry.goalsConceded >= 0 && entry.goalsConceded <= 1000
+      )) &&
       [0, 3, 4, 5, 6, 7, 8, 9].includes(entry.cupRound) &&
       ["stayed", "promoted", "relegated"].includes(entry.outcome) &&
       typeof entry.mainAchieved === "boolean" &&
@@ -2546,6 +2711,7 @@
       progress.leagueSize;
     form.elements.namedItem("currency").value = progress.currency;
 
+    updateSeasonResultFields();
     byId("season-results-status").textContent = "";
     form.hidden = false;
     form.elements.namedItem("leagueFinish").focus();
@@ -2580,11 +2746,15 @@
 
     const data = new FormData(form);
     const progress = getSeasonProgress();
+    const currentChallenge = getSeasonChallenge();
+    const modern = currentChallenge.model === "league-relative-v1";
+    const matches = modern ? Number(data.get("leagueMatches")) : null;
+    const goalsConceded = modern ? Number(data.get("leagueGoalsConceded")) : null;
 
     const finish = Number(data.get("leagueFinish"));
     const leagueSize = Number(data.get("completedLeagueSize"));
     const goals = Number(data.get("leagueGoals"));
-    const cupRound = Number(data.get("faCupRound"));
+    const cupRound = modern ? 0 : Number(data.get("faCupRound"));
     const outcome = String(data.get("leagueOutcome"));
     const nextLeague = String(data.get("nextLeague")).trim();
     const nextLeagueSize = Number(data.get("nextLeagueSize"));
@@ -2600,6 +2770,8 @@
       Number.isInteger(goals) &&
       goals >= 0 &&
       goals <= 1000 &&
+      (!modern || (Number.isInteger(matches) && matches >= 1 && matches <= 200 &&
+        Number.isInteger(goalsConceded) && goalsConceded >= 0 && goalsConceded <= 1000)) &&
       [0, 3, 4, 5, 6, 7, 8, 9].includes(cupRound) &&
       ["stayed", "promoted", "relegated"].includes(outcome) &&
       nextLeague.length > 0 &&
@@ -2634,7 +2806,7 @@
     const target = objectiveTarget(challenge);
     const bonuses = bonusTargets(challenge);
 
-    if (target === null || bonuses.goals === null) {
+    if (target === null || (!modern && bonuses.goals === null)) {
       status.textContent =
         "The current objectives could not be assessed. No progress was changed.";
       return;
@@ -2646,6 +2818,8 @@
       leagueSize,
       finish,
       goals,
+      matches,
+      goalsConceded,
       cupRound,
       outcome,
       mainAchieved: finish <= target,
@@ -2655,17 +2829,17 @@
       bonusResults: [
         {
           title: challenge.bonuses[0].title,
-          achieved: cupRound >= bonuses.cup
+          achieved: modern ? goals - goalsConceded >= currentChallenge.goalDifferenceTarget : cupRound >= bonuses.cup
         },
         {
           title: challenge.bonuses[1].title,
-          achieved: goals >= bonuses.goals
+          achieved: modern ? goals + 1e-9 >= matches * currentChallenge.goalRate : goals >= bonuses.goals
         }
       ],
       policies: structuredClone(getPolicies()),
       challenge: structuredClone(challenge),
       squad: structuredClone(getSquad()),
-      formation: "4-2-3-1",
+      formation: hasClubBriefing() ? "4-2-3-1" : null,
       recordedAt: new Date().toISOString()
     };
 
@@ -2701,7 +2875,7 @@
     form.hidden = true;
     lastRemoval = null;
 
-    renderTactics();
+    if (hasClubBriefing()) renderTactics();
     renderPolicies();
     renderSeasonChallenge();
     refreshSeasonLabels();
