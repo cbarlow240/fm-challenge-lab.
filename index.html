@@ -715,6 +715,208 @@
           </p>
         </aside>
 
+               <section
+          class="season-progress"
+          aria-labelledby="season-progress-title"
+        >
+          <h4 id="season-progress-title">Finished your season?</h4>
+
+          <p class="season-description">
+            Record your results and next season’s circumstances.
+            Your next challenge will respond to how you performed.
+          </p>
+
+          <button
+            class="button button-primary"
+            id="open-season-results-button"
+            type="button"
+          >
+            Enter Season Results
+            <span aria-hidden="true">→</span>
+          </button>
+
+          <form
+            class="season-results-form"
+            id="season-results-form"
+            hidden
+          >
+            <div class="season-results-fields">
+              <label class="signing-field">
+                Final league position
+                <input
+                  class="squad-input"
+                  name="leagueFinish"
+                  type="number"
+                  min="1"
+                  max="60"
+                  step="1"
+                  placeholder="8"
+                  required
+                >
+              </label>
+
+              <label class="signing-field">
+                Teams in the league you just played
+                <input
+                  class="squad-input"
+                  name="completedLeagueSize"
+                  type="number"
+                  min="2"
+                  max="60"
+                  step="1"
+                  value="24"
+                  required
+                >
+              </label>
+
+              <label class="signing-field">
+                Regular-season league goals scored
+                <input
+                  class="squad-input"
+                  name="leagueGoals"
+                  type="number"
+                  min="0"
+                  max="1000"
+                  step="1"
+                  placeholder="65"
+                  required
+                >
+              </label>
+
+              <label class="signing-field">
+                FA Cup round reached
+                <select class="squad-select" name="faCupRound">
+                  <option value="">Choose a result</option>
+                  <option value="0">Did not reach the third round</option>
+                  <option value="3">Third round</option>
+                  <option value="4">Fourth round</option>
+                  <option value="5">Fifth round</option>
+                  <option value="6">Quarter-final</option>
+                  <option value="7">Semi-final</option>
+                  <option value="8">Finalist</option>
+                  <option value="9">Winner</option>
+                </select>
+              </label>
+
+              <label class="signing-field">
+                League outcome
+                <select
+                  class="squad-select"
+                  name="leagueOutcome"
+                  required
+                >
+                  <option value="">Choose an outcome</option>
+                  <option value="stayed">Stayed in the same division</option>
+                  <option value="promoted">Promoted</option>
+                  <option value="relegated">Relegated</option>
+                </select>
+              </label>
+
+              <label class="signing-field">
+                Next season’s league
+                <input
+                  class="squad-input"
+                  name="nextLeague"
+                  type="text"
+                  maxlength="80"
+                  placeholder="For example: Premier League"
+                  required
+                >
+              </label>
+
+              <label class="signing-field">
+                Teams in next season’s league
+                <input
+                  class="squad-input"
+                  name="nextLeagueSize"
+                  type="number"
+                  min="2"
+                  max="60"
+                  step="1"
+                  placeholder="20"
+                  required
+                >
+              </label>
+
+              <label class="signing-field">
+                Budget currency
+                <select class="squad-select" name="currency">
+                  <option value="GBP">GBP — British pound</option>
+                  <option value="EUR">EUR — Euro</option>
+                  <option value="USD">USD — US dollar</option>
+                </select>
+              </label>
+
+              <label class="signing-field">
+                Next season’s available transfer budget
+                <input
+                  class="squad-input"
+                  name="transferBudget"
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="1000000"
+                  required
+                >
+              </label>
+
+              <label class="signing-field">
+                Next season’s highest existing weekly basic wage
+                <input
+                  class="squad-input"
+                  name="highestWeeklyWage"
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="20000"
+                  required
+                >
+              </label>
+            </div>
+
+            <p class="signing-note">
+              Use the figures shown in your FM save. League position
+              and goals refer to the regular season, excluding play-offs.
+              Confirm promotion or relegation separately.
+            </p>
+
+            <div class="signing-actions">
+              <button
+                class="button button-primary"
+                id="unlock-next-season-button"
+                type="submit"
+              >
+                Record Results & Unlock Next Season
+              </button>
+
+              <button
+                class="button button-secondary"
+                id="cancel-season-results-button"
+                type="button"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+
+          <p
+            class="setup-status"
+            id="season-results-status"
+            role="status"
+            aria-live="polite"
+          ></p>
+        </section>
+
+        <section
+          class="season-history"
+          id="season-history"
+          aria-labelledby="season-history-title"
+          hidden
+        >
+          <h4 id="season-history-title">Your season history</h4>
+          <div id="season-history-list"></div>
+        </section>
+
         <p class="preview-note">
           Starter preview · season targets and predictions are
           provisional while we verify the FM24 data.
