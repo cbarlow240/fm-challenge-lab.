@@ -1504,7 +1504,8 @@
       difficulty: career.difficulty,
       squad: career.squad,
       policies: career.policies,
-      challenge: career.challenge
+            challenge: career.challenge,
+      progress: career.progress
     });
   }
 
