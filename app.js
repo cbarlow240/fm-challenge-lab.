@@ -625,13 +625,18 @@
     updateUndoNotice();
   }
 
-  function switchTab(tab) {
+   function switchTab(tab) {
     activeTab = tab;
 
-    byId("tactics-panel").hidden = tab !== "tactics";
-    byId("squad-panel").hidden = tab !== "squad";
+    const panels = {
+      tactics: "tactics-panel",
+      squad: "squad-panel",
+      policies: "policies-panel"
+    };
 
-    ["tactics", "squad"].forEach((name) => {
+    Object.entries(panels).forEach(([name, panelId]) => {
+      byId(panelId).hidden = name !== tab;
+
       const button = byId(`${name}-tab-button`);
       const selected = name === tab;
 
@@ -646,13 +651,22 @@
 
     if (tab === "squad") {
       renderSquad();
+
       announce(
         "Partial starter squad with provisional ratings. " +
         "A dash means the player’s age has not been verified. " +
         "Changes are not saved after a page refresh."
       );
+    } else if (tab === "policies") {
+      renderPolicies();
+
+      announce(
+        "Season 1 transfer policies. Follow all rules together; " +
+        "existing players are not affected."
+      );
     } else {
       renderTactics();
+
       announce(
         "Demonstration lineup, tactical assignments, and ratings. " +
         "Vacant positions indicate removed starting players."
@@ -810,6 +824,214 @@
 
     announce(`${removal.player.name} restored to your squad.`);
     byId("squad-tab-button").focus({ preventScroll: true });
+  });
+
+    /* Season 1 transfer policies */
+
+  const savedPolicySets = new Map();
+
+  const policySettings = {
+    rookie: {
+      arrivals: [8, 9, 10]
+    },
+    professional: {
+      arrivals: [6, 7],
+      budget: [85, 90]
+    },
+    veteran: {
+      arrivals: [4, 5],
+      age: [26, 27],
+      wages: [100]
+    },
+    legendary: {
+      arrivals: [3, 4],
+      age: [23, 24],
+      wages: [80, 90],
+      budget: [70, 75]
+    }
+  };
+
+  function choosePolicyLimit(options) {
+    return options[randomIndex(options.length)];
+  }
+
+  function createArrivalPolicy(limit) {
+    return {
+      category: "arrivals",
+      title: "Make every signing count",
+      rule:
+        `Bring in no more than ${limit} players during Season 1. ` +
+        "Permanent signings and incoming loans both count.",
+      reason:
+        "A smaller recruitment window encourages you to prioritise " +
+        "the positions that need the most attention.",
+      example:
+        `${limit - 1} permanent signings and one incoming loan ` +
+        `would use all ${limit} places.`,
+      clarification:
+        "Contract renewals, youth promotions, and your own players " +
+        "returning from loan do not count as new arrivals."
+    };
+  }
+
+  function createBudgetPolicy(percent) {
+    return {
+      category: "budget",
+      title: "Keep money in reserve",
+      rule:
+        `Spend no more than ${percent}% of your Season 1 transfer allowance ` +
+        "on guaranteed incoming transfer fees and loan fees.",
+      reason:
+        "Keeping a reserve gives your club room to manage unexpected " +
+        "costs while still strengthening the squad.",
+      example:
+        `With a £1 million allowance, your combined guaranteed fees ` +
+        `must stay at or below £${(percent * 10000).toLocaleString("en-GB")}.`,
+      clarification:
+        "Record the available transfer budget when you start. Add any " +
+        "extra funds the board actually makes available during the season, " +
+        "including retained sale proceeds. Count guaranteed instalments " +
+        "even if they are payable later. Wages are handled separately."
+    };
+  }
+
+  function createAgePolicy(ageLimit) {
+    return {
+      category: "age",
+      title: "Build for the future",
+      rule:
+        `Every new signing must be aged ${ageLimit} or younger ` +
+        "on the day they join your club.",
+      reason:
+        "Recruit players who can develop alongside the club " +
+        "over your five-season challenge.",
+      example:
+        `A ${ageLimit}-year-old arriving now meets this rule. ` +
+        `A ${ageLimit + 1}-year-old does not.`,
+      clarification:
+        "This applies to permanent signings, free agents, and incoming " +
+        "loans. Existing players can stay and renew their contracts. " +
+        "A signing becoming older later does not break the rule."
+    };
+  }
+
+  function createWagePolicy(percent) {
+    return {
+      category: "wages",
+      title: "Protect the wage structure",
+      rule:
+        `Your basic weekly wage contribution for each new signing ` +
+        `must not exceed ${percent}% of the highest basic weekly wage ` +
+        "already paid by your club when this challenge starts.",
+      reason:
+        "Recruit within the club’s existing salary structure " +
+        "rather than depending on expensive new stars.",
+      example:
+        `If the starting highest basic wage is £20,000 per week, ` +
+        `the limit is £${(20000 * percent / 100).toLocaleString("en-GB")} ` +
+        "per week for each arrival.",
+      clarification:
+        "For a loan, count only the basic wage your club pays. " +
+        "Record the starting highest wage once; new signings cannot raise " +
+        "this limit. Existing players and their renewals are exempt. " +
+        "The board’s overall wage budget still applies."
+    };
+  }
+
+  function getPolicies() {
+    const key = `${selectedClub.id}:${selectedDifficulty}:season-1`;
+
+    if (!savedPolicySets.has(key)) {
+      const settings = policySettings[selectedDifficulty];
+      const policies = [];
+
+      policies.push(
+        createArrivalPolicy(choosePolicyLimit(settings.arrivals))
+      );
+
+      if (settings.age) {
+        policies.push(
+          createAgePolicy(choosePolicyLimit(settings.age))
+        );
+      }
+
+      if (settings.wages) {
+        policies.push(
+          createWagePolicy(choosePolicyLimit(settings.wages))
+        );
+      }
+
+      if (settings.budget) {
+        policies.push(
+          createBudgetPolicy(choosePolicyLimit(settings.budget))
+        );
+      }
+
+      // One rule per category avoids duplicate or opposing requirements.
+      // Every rule is a ceiling; none forces a conflicting signing.
+      const categories = new Set(
+        policies.map((policy) => policy.category)
+      );
+
+      if (categories.size !== policies.length || policies.length > 4) {
+        throw new Error("Invalid transfer policy combination.");
+      }
+
+      savedPolicySets.set(key, policies);
+    }
+
+    return savedPolicySets.get(key);
+  }
+
+  function renderPolicies() {
+    const policies = getPolicies();
+    const container = byId("policy-list");
+
+    container.replaceChildren();
+
+    byId("policies-count").textContent =
+      `${policies.length} ${policies.length === 1 ? "policy" : "policies"}`;
+
+    policies.forEach((policy, index) => {
+      const card = document.createElement("article");
+      card.className = "policy-card";
+
+      const heading = document.createElement("div");
+      heading.className = "policy-card-heading";
+
+      heading.append(
+        textElement("span", "policy-number", index + 1),
+        textElement("h4", "", policy.title)
+      );
+
+      const example = document.createElement("div");
+      example.className = "policy-example";
+
+      example.append(
+        textElement(
+          "span",
+          "policy-example-label",
+          "Example within this rule"
+        ),
+        textElement("p", "", policy.example)
+      );
+
+      card.append(
+        heading,
+        textElement("p", "policy-rule", policy.rule),
+        textElement("p", "policy-reason", policy.reason),
+        example,
+        textElement("p", "policy-exception", policy.clarification)
+      );
+
+      container.append(card);
+    });
+  }
+
+  byId("policies-tab-button").disabled = false;
+
+  byId("policies-tab-button").addEventListener("click", () => {
+    switchTab("policies");
   });
 
   updateDifficultySelection();
