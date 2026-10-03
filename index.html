@@ -443,6 +443,150 @@
         </aside>
       </div>
 
+            <section
+        class="squad-panel"
+        id="squad-panel"
+        aria-labelledby="squad-title"
+        hidden
+      >
+        <div class="squad-toolbar">
+          <div>
+            <h3 id="squad-title">Your squad</h3>
+
+            <p class="squad-summary">
+              <span id="squad-player-count">0</span> players
+              · league-relative ratings
+            </p>
+          </div>
+
+          <div class="squad-tools">
+            <label class="squad-sort-label" for="squad-sort">
+              Sort
+            </label>
+
+            <select class="squad-select" id="squad-sort">
+              <option value="position">By position</option>
+              <option value="rating">Highest rating</option>
+              <option value="name">Name A–Z</option>
+            </select>
+
+            <button
+              class="button button-primary"
+              id="add-signing-button"
+              type="button"
+            >
+              + Add Signing
+            </button>
+          </div>
+        </div>
+
+        <form class="signing-form" id="signing-form" hidden>
+          <h4>Add a signing</h4>
+
+          <p class="signing-note">
+            Enter the player’s details and your assessment of their
+            quality relative to the league.
+          </p>
+
+          <div class="signing-fields">
+            <label class="signing-field">
+              Player name
+              <input
+                class="squad-input"
+                name="playerName"
+                type="text"
+                maxlength="60"
+                placeholder="Player name"
+                required
+              >
+            </label>
+
+            <label class="signing-field">
+              Age
+              <input
+                class="squad-input"
+                name="age"
+                type="number"
+                min="14"
+                max="60"
+                step="1"
+                placeholder="23"
+                required
+              >
+            </label>
+
+            <label class="signing-field">
+              Position group
+              <select class="squad-select" name="group">
+                <option value="goalkeepers">Goalkeepers</option>
+                <option value="defenders">Defenders</option>
+                <option value="midfielders">Midfielders</option>
+                <option value="forwards">Forwards</option>
+              </select>
+            </label>
+
+            <label class="signing-field">
+              Positions
+              <input
+                class="squad-input"
+                name="positions"
+                type="text"
+                maxlength="30"
+                placeholder="AM (R), ST"
+                required
+              >
+            </label>
+
+            <label class="signing-field">
+              Rating out of 10
+              <input
+                class="squad-input"
+                name="rating"
+                type="number"
+                min="1"
+                max="10"
+                step="0.1"
+                placeholder="7.0"
+                required
+              >
+            </label>
+          </div>
+
+          <div class="signing-actions">
+            <button class="button button-primary" type="submit">
+              Add to Squad
+            </button>
+
+            <button
+              class="button button-secondary"
+              id="cancel-signing-button"
+              type="button"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+
+        <div class="squad-undo" id="squad-undo" hidden>
+          <span id="squad-undo-message"></span>
+
+          <button
+            class="button button-secondary"
+            id="undo-remove-button"
+            type="button"
+          >
+            Undo
+          </button>
+        </div>
+
+        <div class="squad-groups" id="squad-groups"></div>
+
+        <p class="preview-note">
+          Starter squads are partial previews with provisional ratings.
+          Changes are not saved when you refresh the page.
+        </p>
+      </section>
+
       <p
         class="setup-status"
         id="briefing-status"
