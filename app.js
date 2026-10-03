@@ -1492,7 +1492,8 @@
       updatedAt: now,
       squad: structuredClone(getSquad()),
       policies: structuredClone(getPolicies()),
-      challenge: structuredClone(getSeasonChallenge())
+            challenge: structuredClone(getSeasonChallenge()),
+      progress: structuredClone(getSeasonProgress())
     };
   }
 
