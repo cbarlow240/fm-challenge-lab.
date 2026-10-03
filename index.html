@@ -728,6 +728,91 @@
         aria-live="polite"
       ></p>
     </section>
+      <section
+      class="careers-panel"
+      id="careers-screen"
+      aria-labelledby="careers-title"
+      hidden
+    >
+      <div class="careers-topbar">
+        <button
+          class="back-button"
+          id="back-careers-button"
+          type="button"
+        >
+          ← Back
+        </button>
+
+        <button
+          class="button button-primary"
+          id="careers-new-challenge-button"
+          type="button"
+        >
+          New Challenge
+          <span aria-hidden="true">+</span>
+        </button>
+      </div>
+
+      <p class="eyebrow">Every club has a story</p>
+
+      <h2 id="careers-title" tabindex="-1">My Careers</h2>
+
+      <p class="careers-description">
+        Start something new or return to an older challenge.
+        Each career keeps its own squad, rules, and objectives.
+      </p>
+
+      <form class="career-save-form" id="career-save-form" hidden>
+        <h3>Name your career</h3>
+
+        <label class="career-name-label" for="career-name">
+          Career name
+        </label>
+
+        <input
+          class="squad-input"
+          id="career-name"
+          name="careerName"
+          type="text"
+          maxlength="60"
+          placeholder="My promotion project"
+          required
+        >
+
+        <div class="career-save-actions">
+          <button class="button button-primary" type="submit">
+            Save Career
+          </button>
+
+          <button
+            class="button button-secondary"
+            id="cancel-career-save-button"
+            type="button"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+
+      <p class="careers-empty" id="careers-empty">
+        No saved careers yet. Generate a challenge, open its briefing,
+        and choose Save Career to keep it here.
+      </p>
+
+      <div class="career-list" id="career-list"></div>
+
+      <p class="careers-storage-note">
+        Careers are private and saved in this browser on this device.
+        Account access across devices will be added later.
+      </p>
+
+      <p
+        class="setup-status"
+        id="careers-status"
+        role="status"
+        aria-live="polite"
+      ></p>
+    </section>
   </main>
 
   <footer class="site-footer">
