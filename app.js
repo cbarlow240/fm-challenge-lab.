@@ -3258,6 +3258,7 @@
 
       const players = parseSquadExport(html);
       showImportPreview(players);
+prepareSquadImportSave(players);
 
       status.textContent =
         `${players.length} players loaded with all 41 attributes. ` +
