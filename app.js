@@ -703,6 +703,7 @@
     byId("signing-form").reset();
 
     switchTab("tactics");
+        refreshSeasonLabels();
     showScreen("briefing-screen");
     byId("briefing-title").focus({ preventScroll: true });
   }
