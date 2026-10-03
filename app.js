@@ -1902,6 +1902,666 @@
       "After the first save, squad changes save automatically. " +
       "Account access across devices will be added later.";
 
+    /* Season progression */
+
+  let seasonProgress = null;
+
+  function createInitialSeasonProgress() {
+    return {
+      season: 1,
+      league: selectedClub.league,
+      leagueSize: 24,
+      currency: "GBP",
+      transferBudget: null,
+      highestWeeklyWage: null,
+      history: []
+    };
+  }
+
+  function getSeasonProgress() {
+    if (!seasonProgress) {
+      seasonProgress = createInitialSeasonProgress();
+    }
+
+    return seasonProgress;
+  }
+
+  function challengeCacheKey() {
+    return `${selectedClub.id}:${selectedDifficulty}:season-${getSeasonProgress().season}`;
+  }
+
+  function isValidSeasonProgress(progress) {
+    // Earlier saved careers did not have this field.
+    if (progress === undefined) {
+      return true;
+    }
+
+    if (
+      !progress ||
+      !Number.isSafeInteger(progress.season) ||
+      progress.season < 1 ||
+      typeof progress.league !== "string" ||
+      !progress.league.trim() ||
+      progress.league.length > 80 ||
+      !Number.isInteger(progress.leagueSize) ||
+      progress.leagueSize < 2 ||
+      progress.leagueSize > 60 ||
+      !["GBP", "EUR", "USD"].includes(progress.currency) ||
+      !Array.isArray(progress.history) ||
+      progress.history.length !== progress.season - 1
+    ) {
+      return false;
+    }
+
+    for (const field of ["transferBudget", "highestWeeklyWage"]) {
+      const value = progress[field];
+
+      if (
+        value !== null &&
+        (!Number.isSafeInteger(value) || value < 0)
+      ) {
+        return false;
+      }
+    }
+
+    return progress.history.every((entry, index) => (
+      entry &&
+      entry.season === index + 1 &&
+      typeof entry.league === "string" &&
+      Number.isInteger(entry.leagueSize) &&
+      entry.leagueSize >= 2 &&
+      entry.leagueSize <= 60 &&
+      Number.isInteger(entry.finish) &&
+      entry.finish >= 1 &&
+      entry.finish <= entry.leagueSize &&
+      Number.isInteger(entry.goals) &&
+      entry.goals >= 0 &&
+      entry.goals <= 1000 &&
+      [0, 3, 4, 5, 6, 7, 8, 9].includes(entry.cupRound) &&
+      ["stayed", "promoted", "relegated"].includes(entry.outcome) &&
+      typeof entry.mainAchieved === "boolean" &&
+      typeof entry.predictionBeaten === "boolean" &&
+      typeof entry.objectiveTitle === "string" &&
+      Number.isInteger(entry.predictedFinish) &&
+      entry.predictedFinish >= 1 &&
+      entry.predictedFinish <= entry.leagueSize &&
+      Array.isArray(entry.bonusResults) &&
+      entry.bonusResults.every((bonus) => (
+        bonus &&
+        typeof bonus.title === "string" &&
+        typeof bonus.achieved === "boolean"
+      ))
+    ));
+  }
+
+  function formatBudget(amount) {
+    return new Intl.NumberFormat("en-GB", {
+      style: "currency",
+      currency: getSeasonProgress().currency,
+      maximumFractionDigits: 0
+    }).format(amount);
+  }
+
+  function settingsForCurrentSeason() {
+    const settings = structuredClone(
+      policySettings[selectedDifficulty]
+    );
+
+    const progress = getSeasonProgress();
+
+    if (progress.season === 1) {
+      return settings;
+    }
+
+    const previous = progress.history.at(-1);
+    const rebuilding = !previous.mainAchieved ||
+      previous.outcome === "relegated";
+
+    if (rebuilding || previous.outcome === "promoted") {
+      settings.arrivals = settings.arrivals.map(
+        (limit) => Math.min(10, limit + 1)
+      );
+    }
+
+    if (settings.age && rebuilding) {
+      settings.age = settings.age.map(
+        (limit) => Math.min(30, limit + 2)
+      );
+    }
+
+    if (settings.wages) {
+      if (progress.highestWeeklyWage === 0) {
+        // Avoid a wage ceiling that rules out all paid recruitment.
+        delete settings.wages;
+      } else if (rebuilding || previous.outcome === "promoted") {
+        settings.wages = settings.wages.map(
+          (limit) => Math.min(100, limit + 10)
+        );
+      }
+    }
+
+    if (settings.budget) {
+      if (progress.transferBudget === 0) {
+        // The board's zero budget already prevents spending.
+        settings.budget = [100];
+      } else if (rebuilding) {
+        settings.budget = settings.budget.map(
+          (limit) => Math.min(95, limit + 10)
+        );
+      }
+    }
+
+    return settings;
+  }
+
+  function createAdaptiveSeasonChallenge() {
+    const progress = getSeasonProgress();
+    const previous = progress.history.at(-1);
+    const size = progress.leagueSize;
+    const policies = getPolicies();
+
+    let forecast;
+
+    if (previous.outcome === "promoted") {
+      forecast = Math.ceil(size * 0.75);
+    } else if (previous.outcome === "relegated") {
+      forecast = Math.max(2, Math.round(size * 0.3));
+    } else {
+      forecast = Math.round(
+        previous.finish / previous.leagueSize * size
+      );
+    }
+
+    const recruitmentPressure = policies.filter(
+      (policy) => ["age", "wages", "budget"].includes(policy.category)
+    ).length;
+
+    forecast += Math.round(recruitmentPressure * 0.5);
+
+    if (progress.transferBudget === 0) {
+      forecast += 1;
+    } else if (progress.highestWeeklyWage > 0) {
+      const recruitmentRoom =
+        progress.transferBudget / (progress.highestWeeklyWage * 52);
+
+      if (recruitmentRoom >= 2) {
+        forecast -= 1;
+      }
+    }
+
+    forecast = Math.max(1, Math.min(size, forecast));
+
+    const targetOffsets = {
+      rookie: 4,
+      professional: 1,
+      veteran: -2,
+      legendary: -4
+    };
+
+    let target = forecast + targetOffsets[selectedDifficulty];
+
+    if (!previous.mainAchieved) {
+      target += 1;
+    }
+
+    target = Math.max(1, Math.min(size, target));
+
+    const goalIncreases = {
+      rookie: 0,
+      professional: 4,
+      veteran: 7,
+      legendary: 10
+    };
+
+    const matchAdjustment =
+      (size - 1) / (previous.leagueSize - 1);
+
+    let goalTarget = Math.round(
+      previous.goals * matchAdjustment +
+      goalIncreases[selectedDifficulty]
+    );
+
+    if (previous.outcome === "promoted") {
+      goalTarget = Math.round(goalTarget * 0.85);
+    }
+
+    goalTarget = Math.max(30, Math.min(90, goalTarget));
+
+    const cupTargets = {
+      rookie: 4,
+      professional: 5,
+      veteran: 6,
+      legendary: 7
+    };
+
+    const cupTarget = Math.max(
+      3,
+      cupTargets[selectedDifficulty] -
+      (previous.mainAchieved ? 0 : 1)
+    );
+
+    const cupNames = {
+      3: "third round",
+      4: "fourth round",
+      5: "fifth round",
+      6: "quarter-finals",
+      7: "semi-finals"
+    };
+
+    const outcomeExplanation = {
+      stayed:
+        "You remain in the same division, so your previous finish " +
+        "provides the starting point for this forecast.",
+      promoted:
+        "Promotion brings a stronger level of opposition, so this " +
+        "forecast starts conservatively.",
+      relegated:
+        "Relegation brings a rebuilding opportunity, so this forecast " +
+        "allows for a stronger finish in your new division."
+    };
+
+    const forecastExplanation =
+      `${outcomeExplanation[previous.outcome]} ` +
+      `Your recorded transfer budget is ${formatBudget(progress.transferBudget)}, ` +
+      `with a highest existing basic wage of ` +
+      `${formatBudget(progress.highestWeeklyWage)} per week. ` +
+      "The recruitment policies and your selected difficulty shape " +
+      "the challenge. These remain provisional estimates; they are " +
+      "not a validated FM24 simulation.";
+
+    return {
+      targetFinish: target,
+      goalTarget,
+      cupRoundTarget: cupTarget,
+      mainObjective: {
+        title: target === 1
+          ? `Win ${progress.league}`
+          : `Finish ${ordinal(target)} or higher`,
+        description:
+          `Finish ${ordinal(target)} or higher in the final regular-season ` +
+          `${progress.league} table. Cup results and play-off results ` +
+          "are recorded separately."
+      },
+      bonuses: [
+        {
+          title: `Reach the FA Cup ${cupNames[cupTarget]}`,
+          description:
+            `Reach at least the ${cupNames[cupTarget]} of the FA Cup.`
+        },
+        {
+          title: `Score ${goalTarget} league goals`,
+          description:
+            `Score at least ${goalTarget} goals in the regular league ` +
+            "season, excluding cups and play-offs."
+        }
+      ],
+      prediction: {
+        finish: forecast,
+        beatTarget: forecast === 1
+          ? "Match it: win the title"
+          : `${ordinal(forecast - 1)} or higher`,
+        explanation:
+          forecastExplanation +
+          (forecast === 1
+            ? " First place is already the highest possible finish; " +
+              "winning the title would match this forecast."
+            : "")
+      }
+    };
+  }
+
+  function renderSeasonHistory() {
+    const progress = getSeasonProgress();
+    const container = byId("season-history-list");
+
+    container.replaceChildren();
+    byId("season-history").hidden = progress.history.length === 0;
+
+    [...progress.history].reverse().forEach((entry) => {
+      const card = document.createElement("article");
+      card.className = "season-history-card";
+
+      const heading = document.createElement("div");
+      heading.className = "season-history-heading";
+
+      heading.append(
+        textElement(
+          "h5",
+          "",
+          `Season ${entry.season} · ${entry.league}`
+        ),
+        textElement(
+          "span",
+          entry.mainAchieved
+            ? "season-result-badge is-success"
+            : "season-result-badge",
+          entry.mainAchieved ? "Main objective achieved" : "Target missed"
+        )
+      );
+
+      const outcomes = {
+        stayed: "Stayed in the same division",
+        promoted: "Promoted",
+        relegated: "Relegated"
+      };
+
+      const bonusCount = entry.bonusResults.filter(
+        (bonus) => bonus.achieved
+      ).length;
+
+      const predictionText = entry.predictionBeaten
+        ? "Prediction beaten"
+        : entry.finish === entry.predictedFinish
+          ? "Prediction matched"
+          : "Finished below the prediction";
+
+      card.append(
+        heading,
+        textElement(
+          "p",
+          "season-history-details",
+          `${ordinal(entry.finish)} of ${entry.leagueSize} · ` +
+          `${entry.goals} league goals · ${outcomes[entry.outcome]}`
+        ),
+        textElement(
+          "p",
+          "season-history-details",
+          `Main objective: ${entry.objectiveTitle}`
+        ),
+        textElement(
+          "p",
+          "season-history-details",
+          `${bonusCount} of ${entry.bonusResults.length} bonuses achieved · ` +
+          `${predictionText} (forecast: ${ordinal(entry.predictedFinish)})`
+        )
+      );
+
+      container.append(card);
+    });
+  }
+
+  function refreshSeasonLabels() {
+    if (!selectedClub) {
+      return;
+    }
+
+    const progress = getSeasonProgress();
+
+    byId("briefing-season-label").textContent =
+      progress.season <= 5
+        ? `Season ${progress.season} of 5`
+        : `Season ${progress.season} · Five-season milestone completed`;
+
+    byId("briefing-league").textContent = progress.league;
+    byId("club-league").textContent = progress.league;
+
+    document.querySelector(
+      ".policies-description"
+    ).textContent =
+      `Build your squad within these rules for Season ${progress.season}. ` +
+      "Each policy applies to new transfer activity, not players " +
+      "already at the club.";
+
+    document.querySelector(
+      ".season-heading .eyebrow"
+    ).textContent = `Season ${progress.season}: your next chapter`;
+
+    document.querySelector(
+      ".prediction-badge"
+    ).textContent = `Season ${progress.season} forecast`;
+
+    byId("season-progress-title").textContent =
+      `Finished Season ${progress.season}?`;
+
+    renderSeasonHistory();
+  }
+
+  function objectiveTarget(challenge) {
+    if (Number.isInteger(challenge.targetFinish)) {
+      return challenge.targetFinish;
+    }
+
+    // Compatibility with the original Season 1 challenge data.
+    const title = challenge.mainObjective.title;
+
+    if (title === "Win the Championship") {
+      return 1;
+    }
+
+    if (title === "Finish in the top two") {
+      return 2;
+    }
+
+    if (title === "Finish in the top six") {
+      return 6;
+    }
+
+    const match = title.match(/Finish (\d+)/);
+    return match ? Number(match[1]) : null;
+  }
+
+  function bonusTargets(challenge) {
+    const cupTargets = {
+      rookie: 4,
+      professional: 5,
+      veteran: 6,
+      legendary: 7
+    };
+
+    const goalMatch = challenge.bonuses[1]?.title.match(/Score (\d+)/);
+
+    return {
+      cup: challenge.cupRoundTarget || cupTargets[selectedDifficulty],
+      goals: challenge.goalTarget ||
+        (goalMatch ? Number(goalMatch[1]) : null)
+    };
+  }
+
+  function openSeasonResults() {
+    if (!currentCareerId) {
+      byId("season-results-status").textContent =
+        "Save and name this career before recording season results.";
+      return;
+    }
+
+    const progress = getSeasonProgress();
+    const form = byId("season-results-form");
+
+    form.reset();
+
+    form.elements.namedItem("completedLeagueSize").value =
+      progress.leagueSize;
+
+    form.elements.namedItem("completedLeagueSize").readOnly = true;
+
+    form.elements.namedItem("leagueFinish").max =
+      progress.leagueSize;
+
+    form.elements.namedItem("nextLeague").value = progress.league;
+    form.elements.namedItem("nextLeagueSize").value =
+      progress.leagueSize;
+    form.elements.namedItem("currency").value = progress.currency;
+
+    byId("season-results-status").textContent = "";
+    form.hidden = false;
+    form.elements.namedItem("leagueFinish").focus();
+  }
+
+  function restoreMap(map, snapshot) {
+    map.clear();
+    snapshot.forEach((value, key) => map.set(key, value));
+  }
+
+  byId("open-season-results-button").addEventListener(
+    "click",
+    openSeasonResults
+  );
+
+  byId("cancel-season-results-button").addEventListener("click", () => {
+    byId("season-results-form").hidden = true;
+    byId("season-results-status").textContent = "";
+    byId("open-season-results-button").focus();
+  });
+
+  byId("season-results-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+
+    const form = byId("season-results-form");
+    const status = byId("season-results-status");
+
+    if (!form.reportValidity() || !selectedClub || !currentCareerId) {
+      status.textContent = "Save this career and complete the result fields.";
+      return;
+    }
+
+    const data = new FormData(form);
+    const progress = getSeasonProgress();
+
+    const finish = Number(data.get("leagueFinish"));
+    const leagueSize = Number(data.get("completedLeagueSize"));
+    const goals = Number(data.get("leagueGoals"));
+    const cupRound = Number(data.get("faCupRound"));
+    const outcome = String(data.get("leagueOutcome"));
+    const nextLeague = String(data.get("nextLeague")).trim();
+    const nextLeagueSize = Number(data.get("nextLeagueSize"));
+    const currency = String(data.get("currency"));
+    const transferBudget = Number(data.get("transferBudget"));
+    const highestWeeklyWage = Number(data.get("highestWeeklyWage"));
+
+    const valid = (
+      Number.isInteger(finish) &&
+      finish >= 1 &&
+      finish <= progress.leagueSize &&
+      leagueSize === progress.leagueSize &&
+      Number.isInteger(goals) &&
+      goals >= 0 &&
+      goals <= 1000 &&
+      [0, 3, 4, 5, 6, 7, 8, 9].includes(cupRound) &&
+      ["stayed", "promoted", "relegated"].includes(outcome) &&
+      nextLeague.length > 0 &&
+      nextLeague.length <= 80 &&
+      Number.isInteger(nextLeagueSize) &&
+      nextLeagueSize >= 2 &&
+      nextLeagueSize <= 60 &&
+      ["GBP", "EUR", "USD"].includes(currency) &&
+      Number.isSafeInteger(transferBudget) &&
+      transferBudget >= 0 &&
+      Number.isSafeInteger(highestWeeklyWage) &&
+      highestWeeklyWage >= 0
+    );
+
+    if (!valid) {
+      status.textContent =
+        "Check the league position, league sizes, results, and budget figures.";
+      return;
+    }
+
+    if (
+      outcome === "stayed" &&
+      nextLeague.toLowerCase() !== progress.league.toLowerCase()
+    ) {
+      status.textContent =
+        "You selected the same division. Keep its league name, " +
+        "or choose promotion or relegation.";
+      return;
+    }
+
+    const challenge = getSeasonChallenge();
+    const target = objectiveTarget(challenge);
+    const bonuses = bonusTargets(challenge);
+
+    if (target === null || bonuses.goals === null) {
+      status.textContent =
+        "The current objectives could not be assessed. No progress was changed.";
+      return;
+    }
+
+    const completedSeason = {
+      season: progress.season,
+      league: progress.league,
+      leagueSize,
+      finish,
+      goals,
+      cupRound,
+      outcome,
+      mainAchieved: finish <= target,
+      objectiveTitle: challenge.mainObjective.title,
+      predictedFinish: challenge.prediction.finish,
+      predictionBeaten: finish < challenge.prediction.finish,
+      bonusResults: [
+        {
+          title: challenge.bonuses[0].title,
+          achieved: cupRound >= bonuses.cup
+        },
+        {
+          title: challenge.bonuses[1].title,
+          achieved: goals >= bonuses.goals
+        }
+      ],
+      policies: structuredClone(getPolicies()),
+      challenge: structuredClone(challenge),
+      squad: structuredClone(getSquad()),
+      formation: "4-2-3-1",
+      recordedAt: new Date().toISOString()
+    };
+
+    const oldProgress = structuredClone(progress);
+    const oldPolicies = new Map(savedPolicySets);
+    const oldChallenges = new Map(savedSeasonChallenges);
+
+    seasonProgress = {
+      season: progress.season + 1,
+      league: nextLeague,
+      leagueSize: nextLeagueSize,
+      currency,
+      transferBudget,
+      highestWeeklyWage,
+      history: [...progress.history, completedSeason]
+    };
+
+    // Generate the new season before saving its snapshot.
+    getPolicies();
+    getSeasonChallenge();
+
+    if (!persistActiveCareer()) {
+      seasonProgress = oldProgress;
+      restoreMap(savedPolicySets, oldPolicies);
+      restoreMap(savedSeasonChallenges, oldChallenges);
+
+      status.textContent =
+        "The new season could not be saved. Your previous season " +
+        "remains active. Keep the page open and try again.";
+      return;
+    }
+
+    form.hidden = true;
+    lastRemoval = null;
+
+    renderTactics();
+    renderPolicies();
+    renderSeasonChallenge();
+    refreshSeasonLabels();
+
+    const milestone = seasonProgress.history.length === 5
+      ? " Five seasons completed — you can keep the career going."
+      : "";
+
+    status.textContent =
+      `Season ${completedSeason.season} recorded. ` +
+      `Season ${seasonProgress.season} unlocked and saved.${milestone}`;
+
+    announce(status.textContent);
+    byId("open-season-results-button").focus({ preventScroll: true });
+  });
+
+  // Keep the labels and history current when changing tabs.
+  ["tactics", "squad", "policies", "season"].forEach((tab) => {
+    byId(`${tab}-tab-button`).addEventListener(
+      "click",
+      refreshSeasonLabels
+    );
+  });
+
   loadSavedCareers();
   updateDifficultySelection();
 })();
