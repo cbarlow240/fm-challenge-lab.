@@ -1302,5 +1302,533 @@
     switchTab("season");
   });
 
+    /* Device-based career saving */
+
+  const careerStorageKey = "fm-challenge-lab-careers-v1";
+
+  let savedCareers = [];
+  let currentCareerId = null;
+  let careersReturnScreen = "home-screen";
+  let storageIssue = "";
+
+  function isValidCareer(career) {
+    if (!career || typeof career !== "object") {
+      return false;
+    }
+
+    const validClub = clubs.some((club) => club.id === career.clubId);
+    const validDifficulty = Object.hasOwn(
+      difficultyNames,
+      career.difficulty
+    );
+
+    if (
+      typeof career.id !== "string" ||
+      typeof career.name !== "string" ||
+      !career.name.trim() ||
+      career.name.length > 60 ||
+      !validClub ||
+      !validDifficulty ||
+      !Number.isFinite(Date.parse(career.createdAt)) ||
+      !Number.isFinite(Date.parse(career.updatedAt))
+    ) {
+      return false;
+    }
+
+    const squad = career.squad;
+
+    if (
+      !squad ||
+      !Array.isArray(squad.players) ||
+      !Array.isArray(squad.startingIds) ||
+      squad.startingIds.length !== tacticalPositions.length ||
+      !squad.startingIds.every(
+        (id) => Number.isSafeInteger(id) && id > 0
+      ) ||
+      new Set(squad.startingIds).size !== squad.startingIds.length
+    ) {
+      return false;
+    }
+
+    const validPlayers = squad.players.every((player) => (
+      player &&
+      Number.isSafeInteger(player.id) &&
+      player.id > 0 &&
+      typeof player.name === "string" &&
+      player.name.trim().length > 0 &&
+      typeof player.shortName === "string" &&
+      typeof player.positions === "string" &&
+      positionGroups.some(([group]) => group === player.group) &&
+      Number.isFinite(player.rating) &&
+      player.rating >= 1 &&
+      player.rating <= 10 &&
+      (
+        player.age === null ||
+        (
+          Number.isInteger(player.age) &&
+          player.age >= 14 &&
+          player.age <= 60
+        )
+      )
+    ));
+
+    if (
+      !validPlayers ||
+      new Set(squad.players.map((player) => player.id)).size !==
+        squad.players.length
+    ) {
+      return false;
+    }
+
+    const policies = career.policies;
+    const allowedCategories = ["arrivals", "age", "wages", "budget"];
+
+    if (
+      !Array.isArray(policies) ||
+      policies.length < 1 ||
+      policies.length > 4 ||
+      !policies.every((policy) => (
+        policy &&
+        allowedCategories.includes(policy.category) &&
+        ["title", "rule", "reason", "example", "clarification"].every(
+          (field) => typeof policy[field] === "string"
+        )
+      )) ||
+      new Set(policies.map((policy) => policy.category)).size !==
+        policies.length
+    ) {
+      return false;
+    }
+
+    const challenge = career.challenge;
+
+    return Boolean(
+      challenge &&
+      challenge.mainObjective &&
+      typeof challenge.mainObjective.title === "string" &&
+      typeof challenge.mainObjective.description === "string" &&
+      Array.isArray(challenge.bonuses) &&
+      challenge.bonuses.length <= 2 &&
+      challenge.bonuses.every((bonus) => (
+        bonus &&
+        typeof bonus.title === "string" &&
+        typeof bonus.description === "string"
+      )) &&
+      challenge.prediction &&
+      Number.isInteger(challenge.prediction.finish) &&
+      challenge.prediction.finish >= 1 &&
+      challenge.prediction.finish <= 24 &&
+      typeof challenge.prediction.beatTarget === "string" &&
+      typeof challenge.prediction.explanation === "string"
+    );
+  }
+
+  function loadSavedCareers() {
+    try {
+      const stored = localStorage.getItem(careerStorageKey);
+
+      if (stored === null) {
+        return;
+      }
+
+      const parsed = JSON.parse(stored);
+
+      if (
+        parsed.version !== 1 ||
+        !Array.isArray(parsed.careers) ||
+        !parsed.careers.every(isValidCareer) ||
+        new Set(parsed.careers.map((career) => career.id)).size !==
+          parsed.careers.length
+      ) {
+        throw new Error("Invalid saved career data.");
+      }
+
+      savedCareers = parsed.careers;
+    } catch (error) {
+      storageIssue =
+        "Saved careers could not be read. Existing stored data has " +
+        "been left untouched. Check that browser storage is available.";
+    }
+  }
+
+  function writeSavedCareers(nextCareers) {
+    if (storageIssue) {
+      byId("careers-status").textContent = storageIssue;
+      return false;
+    }
+
+    try {
+      localStorage.setItem(
+        careerStorageKey,
+        JSON.stringify({
+          version: 1,
+          careers: nextCareers
+        })
+      );
+
+      savedCareers = nextCareers;
+      return true;
+    } catch (error) {
+      const message =
+        "Your latest changes could not be saved. Browser storage " +
+        "may be full or unavailable. Keep this page open and try again.";
+
+      byId("careers-status").textContent = message;
+      announce(message);
+      byId("save-career-button").textContent = "Retry Save";
+      return false;
+    }
+  }
+
+  function captureCareer(id, name, existing = null) {
+    const now = new Date().toISOString();
+
+    return {
+      id,
+      name,
+      clubId: selectedClub.id,
+      difficulty: selectedDifficulty,
+      createdAt: existing ? existing.createdAt : now,
+      updatedAt: now,
+      squad: structuredClone(getSquad()),
+      policies: structuredClone(getPolicies()),
+      challenge: structuredClone(getSeasonChallenge())
+    };
+  }
+
+  function careerProgress(career) {
+    return JSON.stringify({
+      name: career.name,
+      clubId: career.clubId,
+      difficulty: career.difficulty,
+      squad: career.squad,
+      policies: career.policies,
+      challenge: career.challenge
+    });
+  }
+
+  function persistActiveCareer() {
+    if (!currentCareerId || !selectedClub) {
+      return true;
+    }
+
+    const existing = savedCareers.find(
+      (career) => career.id === currentCareerId
+    );
+
+    if (!existing) {
+      announce("This career could not be found. Use Save Career again.");
+      return false;
+    }
+
+    const updated = captureCareer(
+      currentCareerId,
+      existing.name,
+      existing
+    );
+
+    // Merely viewing a tab does not change the saved timestamp.
+    if (careerProgress(updated) === careerProgress(existing)) {
+      return true;
+    }
+
+    const nextCareers = savedCareers.map((career) => (
+      career.id === currentCareerId ? updated : career
+    ));
+
+    const saved = writeSavedCareers(nextCareers);
+
+    if (saved) {
+      byId("save-career-button").textContent = "Save Career";
+    }
+
+    return saved;
+  }
+
+  function prepareNewDraft() {
+    if (!persistActiveCareer()) {
+      return false;
+    }
+
+    currentCareerId = null;
+    selectedClub = null;
+    lastRemoval = null;
+
+    squads.clear();
+    savedPolicySets.clear();
+    savedSeasonChallenges.clear();
+
+    byId("signing-form").reset();
+    byId("signing-form").hidden = true;
+    byId("save-career-button").textContent = "Save Career";
+
+    return true;
+  }
+
+  function renderSavedCareers() {
+    const container = byId("career-list");
+    container.replaceChildren();
+
+    byId("careers-empty").hidden =
+      savedCareers.length > 0 || Boolean(storageIssue);
+
+    const ordered = [...savedCareers].sort(
+      (a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt)
+    );
+
+    ordered.forEach((career) => {
+      const club = clubs.find((item) => item.id === career.clubId);
+
+      const card = document.createElement("article");
+      card.className = "career-card";
+
+      const heading = document.createElement("div");
+      heading.className = "career-card-heading";
+
+      heading.append(
+        textElement("h3", "", career.name),
+        textElement("span", "career-privacy", "Private")
+      );
+
+      const date = new Date(career.updatedAt).toLocaleString("en-GB", {
+        dateStyle: "medium",
+        timeStyle: "short"
+      });
+
+      const actions = document.createElement("div");
+      actions.className = "career-card-actions";
+
+      const resume = textElement(
+        "button",
+        "button button-primary",
+        "Resume Career"
+      );
+
+      resume.type = "button";
+      resume.addEventListener("click", () => resumeCareer(career.id));
+
+      actions.append(resume);
+
+      card.append(
+        heading,
+        textElement("p", "career-club-name", club.name),
+        textElement(
+          "p",
+          "career-details",
+          `${difficultyNames[career.difficulty]} · Season 1 of 5 · ` +
+          `${career.squad.players.length} players`
+        ),
+        textElement("p", "career-saved-date", `Last saved: ${date}`),
+        actions
+      );
+
+      container.append(card);
+    });
+
+    if (storageIssue) {
+      byId("careers-status").textContent = storageIssue;
+    }
+  }
+
+  function openCareers(saving = false) {
+    if (!persistActiveCareer()) {
+      return;
+    }
+
+    careersReturnScreen = saving ? "briefing-screen" : "home-screen";
+    byId("careers-status").textContent = "";
+    byId("career-save-form").hidden = !saving;
+
+    renderSavedCareers();
+    showScreen("careers-screen");
+
+    if (saving) {
+      const existing = savedCareers.find(
+        (career) => career.id === currentCareerId
+      );
+
+      byId("career-name").value = existing
+        ? existing.name
+        : `${selectedClub.name} — ${difficultyNames[selectedDifficulty]}`;
+
+      byId("career-name").focus();
+    } else {
+      byId("careers-title").focus({ preventScroll: true });
+    }
+  }
+
+  function resumeCareer(id) {
+    if (!persistActiveCareer()) {
+      return;
+    }
+
+    const career = savedCareers.find((item) => item.id === id);
+
+    if (!career) {
+      byId("careers-status").textContent = "This career was not found.";
+      return;
+    }
+
+    cancelReveal();
+
+    selectedClub = clubs.find((club) => club.id === career.clubId);
+    selectedDifficulty = career.difficulty;
+    currentCareerId = career.id;
+    lastRevealedClubId = career.clubId;
+    lastRemoval = null;
+
+    squads.clear();
+    savedPolicySets.clear();
+    savedSeasonChallenges.clear();
+
+    const squad = structuredClone(career.squad);
+    squads.set(selectedClub.id, squad);
+
+    const key = `${selectedClub.id}:${selectedDifficulty}:season-1`;
+
+    savedPolicySets.set(key, structuredClone(career.policies));
+    savedSeasonChallenges.set(key, structuredClone(career.challenge));
+
+    const usedIds = [
+      ...squad.startingIds,
+      ...squad.players.map((player) => player.id)
+    ];
+
+    usedIds.forEach((playerId) => {
+      nextPlayerId = Math.max(nextPlayerId, playerId + 1);
+    });
+
+    document.querySelectorAll('input[name="difficulty"]').forEach(
+      (input) => {
+        input.checked = input.value === selectedDifficulty;
+      }
+    );
+
+    updateDifficultySelection();
+    renderClub(selectedClub);
+
+    byId("club-shuffle").hidden = true;
+    byId("club-result").hidden = false;
+    byId("club-status").textContent = "";
+    byId("career-save-form").hidden = true;
+    byId("save-career-button").textContent = "Save Career";
+
+    openBriefing();
+  }
+
+  function returnFromCareers() {
+    byId("career-save-form").hidden = true;
+    showScreen(careersReturnScreen);
+
+    if (careersReturnScreen === "briefing-screen") {
+      byId("save-career-button").focus();
+    } else {
+      byId("my-careers-button").focus();
+    }
+  }
+
+  byId("my-careers-button").addEventListener("click", () => {
+    openCareers(false);
+  });
+
+  byId("save-career-button").disabled = false;
+
+  byId("save-career-button").addEventListener("click", () => {
+    if (selectedClub) {
+      openCareers(true);
+    }
+  });
+
+  byId("career-save-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+
+    const form = byId("career-save-form");
+
+    if (!selectedClub || !form.reportValidity()) {
+      return;
+    }
+
+    const name = byId("career-name").value.trim();
+
+    if (!name || name.length > 60) {
+      byId("careers-status").textContent =
+        "Enter a career name between 1 and 60 characters.";
+      return;
+    }
+
+    const existing = savedCareers.find(
+      (career) => career.id === currentCareerId
+    );
+
+    const id = existing ? existing.id : window.crypto.randomUUID();
+    const career = captureCareer(id, name, existing);
+
+    const nextCareers = existing
+      ? savedCareers.map((item) => item.id === id ? career : item)
+      : [...savedCareers, career];
+
+    if (!writeSavedCareers(nextCareers)) {
+      return;
+    }
+
+    currentCareerId = id;
+    form.hidden = true;
+    byId("save-career-button").textContent = "Save Career";
+
+    renderSavedCareers();
+
+    byId("careers-status").textContent =
+      `${name} saved privately. Future squad changes save automatically.`;
+
+    byId("careers-title").focus({ preventScroll: true });
+  });
+
+  byId("back-careers-button").addEventListener(
+    "click",
+    returnFromCareers
+  );
+
+  byId("cancel-career-save-button").addEventListener(
+    "click",
+    returnFromCareers
+  );
+
+  function startNewCareerFromCareers() {
+    if (!prepareNewDraft()) {
+      return;
+    }
+
+    byId("career-save-form").hidden = true;
+    updateDifficultySelection();
+    showScreen("difficulty-screen");
+    byId("difficulty-title").focus({ preventScroll: true });
+  }
+
+  byId("careers-new-challenge-button").addEventListener(
+    "click",
+    startNewCareerFromCareers
+  );
+
+  // Existing handlers open the difficulty screen first.
+  // These clear the previous career before a new selection is made.
+  byId("new-challenge-button").addEventListener("click", () => {
+    if (!prepareNewDraft()) {
+      showScreen(selectedClub ? "briefing-screen" : "home-screen");
+    }
+  });
+
+  byId("back-setup-button").addEventListener("click", () => {
+    if (!prepareNewDraft()) {
+      showScreen("club-screen");
+    }
+  });
+
+  byId("careers-screen")
+    .querySelector(".careers-storage-note").textContent =
+      "Careers are private and saved in this browser on this device. " +
+      "After the first save, squad changes save automatically. " +
+      "Account access across devices will be added later.";
+
+  loadSavedCareers();
   updateDifficultySelection();
 })();
