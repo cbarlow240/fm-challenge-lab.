@@ -626,7 +626,8 @@
       container.append(section);
     });
 
-    updateUndoNotice();
+        updateUndoNotice();
+    persistActiveCareer();
   }
 
     function switchTab(tab) {
