@@ -1433,7 +1433,8 @@
       challenge.prediction.finish >= 1 &&
       challenge.prediction.finish <= 24 &&
       typeof challenge.prediction.beatTarget === "string" &&
-      typeof challenge.prediction.explanation === "string"
+            typeof challenge.prediction.explanation === "string" &&
+      isValidSeasonProgress(career.progress)
     );
   }
 
