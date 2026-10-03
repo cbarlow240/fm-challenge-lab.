@@ -650,6 +650,79 @@
 
   <p class="signing-note" id="league-rating-summary" hidden></p>
 </section>
+  <section
+  class="signing-form"
+  aria-labelledby="league-comparison-title"
+>
+  <h4 id="league-comparison-title">League comparison</h4>
+
+  <p class="signing-note">
+    Choose a player-search export from the same league and
+    in-game date as your squad. Comparisons stay in this browser.
+  </p>
+
+  <form id="league-comparison-form">
+    <div class="signing-fields">
+      <label class="signing-field">
+        League name
+        <input
+          class="squad-input"
+          name="leagueName"
+          type="text"
+          maxlength="80"
+          placeholder="English Premier Division"
+          required
+        >
+      </label>
+
+      <label class="signing-field">
+        In-game date
+        <input
+          class="squad-input"
+          name="gameDate"
+          type="date"
+          required
+        >
+      </label>
+
+      <label class="signing-field">
+        League HTML export
+        <input
+          class="squad-input"
+          id="league-comparison-file"
+          type="file"
+          accept=".html,.htm,text/html"
+        >
+      </label>
+    </div>
+
+    <button
+      class="button button-primary"
+      id="save-league-comparison-button"
+      type="submit"
+      disabled
+    >
+      Save League Comparison
+    </button>
+  </form>
+
+  <p id="league-comparison-status" role="status">
+    No league comparison loaded yet.
+  </p>
+
+  <div class="squad-groups" id="league-comparison-list"></div>
+
+  <button
+    class="button button-secondary"
+    id="rate-imported-squad-button"
+    type="button"
+    disabled
+  >
+    Show Estimated Ratings
+  </button>
+
+  <p class="signing-note" id="league-rating-summary" hidden></p>
+</section>
 <section id="saved-squad-imports" hidden>
   <h4>Your saved squad exports</h4>
   <div class="squad-groups" id="saved-squad-import-list"></div>
