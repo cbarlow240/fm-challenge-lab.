@@ -3,11 +3,11 @@
 (() => {
   const byId = (id) => document.getElementById(id);
 
-  const screens = [
-    byId("home-screen"),
-    byId("difficulty-screen"),
-    byId("club-screen"),
-    byId("briefing-screen")
+  const screenIds = [
+    "home-screen",
+    "difficulty-screen",
+    "club-screen",
+    "briefing-screen"
   ];
 
   const difficultyNames = {
@@ -30,9 +30,9 @@
         "Can you bring top-flight football back to Wearside, " +
         "then build a team worthy of its history?",
       honours: [
-        { count: 6, name: "English league titles", year: "Last won: 1936" },
-        { count: 2, name: "FA Cups", year: "Last won: 1973" },
-        { count: 1, name: "Charity Shield", year: "Won: 1936" }
+        [6, "English league titles", "Last won: 1936"],
+        [2, "FA Cups", "Last won: 1973"],
+        [1, "Charity Shield", "Won: 1936"]
       ]
     },
     {
@@ -47,9 +47,9 @@
         "Build on a rich history and guide the Tractor Boys " +
         "towards a return to the top flight.",
       honours: [
-        { count: 1, name: "English league title", year: "Won: 1962" },
-        { count: 1, name: "FA Cup", year: "Won: 1978" },
-        { count: 1, name: "UEFA Cup", year: "Won: 1981" }
+        [1, "English league title", "Won: 1962"],
+        [1, "FA Cup", "Won: 1978"],
+        [1, "UEFA Cup", "Won: 1981"]
       ]
     },
     {
@@ -64,16 +64,14 @@
         "in the Championship. Can you lead their recovery " +
         "and write the next remarkable chapter?",
       honours: [
-        { count: 1, name: "Premier League title", year: "Won: 2016" },
-        { count: 1, name: "FA Cup", year: "Won: 2021" },
-        { count: 3, name: "League Cups", year: "Last won: 2000" }
+        [1, "Premier League title", "Won: 2016"],
+        [1, "FA Cup", "Won: 2021"],
+        [3, "League Cups", "Last won: 2000"]
       ]
     }
   ];
 
-  // Demonstration lineups and ratings, not verified FM24 attributes.
-  // Order: striker, left/central/right attacking midfielders,
-  // two defensive midfielders, four defenders, goalkeeper.
+  // Partial demonstration squads. Ratings are provisional.
   const starterLineups = {
     sunderland: [
       ["Nazariy Rusyn", "Rusyn", 6.8],
@@ -116,20 +114,18 @@
     ]
   };
 
-  // Shared demonstration formation.
-  // These assignments will be refined using the squad data.
   const tacticalPositions = [
-    ["ST (C)", "Striker", "Advanced Forward", "Attack"],
-    ["AM (L)", "Attacking midfielder", "Winger", "Attack"],
-    ["AM (C)", "Attacking midfielder", "Attacking Midfielder", "Support"],
-    ["AM (R)", "Attacking midfielder", "Inverted Winger", "Support"],
-    ["DM (L)", "Defensive midfielder", "Deep-Lying Playmaker", "Support"],
-    ["DM (R)", "Defensive midfielder", "Defensive Midfielder", "Defend"],
-    ["D (L)", "Defender", "Full-Back", "Support"],
-    ["D (CL)", "Defender", "Central Defender", "Defend"],
-    ["D (CR)", "Defender", "Central Defender", "Defend"],
-    ["D (R)", "Defender", "Wing-Back", "Support"],
-    ["GK", "Goalkeeper", "Sweeper Keeper", "Defend"]
+    ["ST (C)", "Striker", "Advanced Forward", "Attack", "forwards"],
+    ["AM (L)", "Attacking midfielder", "Winger", "Attack", "forwards"],
+    ["AM (C)", "Attacking midfielder", "Attacking Midfielder", "Support", "midfielders"],
+    ["AM (R)", "Attacking midfielder", "Inverted Winger", "Support", "forwards"],
+    ["DM (L)", "Defensive midfielder", "Deep-Lying Playmaker", "Support", "midfielders"],
+    ["DM (R)", "Defensive midfielder", "Defensive Midfielder", "Defend", "midfielders"],
+    ["D (L)", "Defender", "Full-Back", "Support", "defenders"],
+    ["D (CL)", "Defender", "Central Defender", "Defend", "defenders"],
+    ["D (CR)", "Defender", "Central Defender", "Defend", "defenders"],
+    ["D (R)", "Defender", "Wing-Back", "Support", "defenders"],
+    ["GK", "Goalkeeper", "Sweeper Keeper", "Defend", "goalkeepers"]
   ];
 
   const formationRows = [
@@ -140,27 +136,50 @@
     [10]
   ];
 
+  const positionGroups = [
+    ["goalkeepers", "Goalkeepers"],
+    ["defenders", "Defenders"],
+    ["midfielders", "Midfielders"],
+    ["forwards", "Forwards"]
+  ];
+
+  const squads = new Map();
+
   let selectedDifficulty = null;
   let selectedClub = null;
   let lastRevealedClubId = null;
   let revealTimer = null;
   let revealVersion = 0;
   let isRevealing = false;
+  let nextPlayerId = 1;
+  let activeTab = "tactics";
+  let lastRemoval = null;
+
+  function textElement(tag, className, text) {
+    const element = document.createElement(tag);
+    element.className = className;
+    element.textContent = text;
+    return element;
+  }
 
   function showScreen(id) {
-    screens.forEach((screen) => {
-      screen.hidden = screen.id !== id;
+    screenIds.forEach((screenId) => {
+      byId(screenId).hidden = screenId !== id;
     });
 
     window.scrollTo({ top: 0, behavior: "instant" });
   }
 
+  function announce(message) {
+    byId("briefing-status").textContent = message;
+  }
+
   function updateDifficultySelection() {
-    const selectedInput = document.querySelector(
+    const input = document.querySelector(
       'input[name="difficulty"]:checked'
     );
 
-    selectedDifficulty = selectedInput ? selectedInput.value : null;
+    selectedDifficulty = input ? input.value : null;
     byId("generate-button").disabled = selectedDifficulty === null;
 
     byId("difficulty-status").textContent = selectedDifficulty
@@ -192,16 +211,14 @@
     byId("club-screen").removeAttribute("aria-busy");
   }
 
-  function createTextElement(tag, className, text) {
-    const element = document.createElement(tag);
-    element.className = className;
-    element.textContent = text;
-    return element;
-  }
-
   function renderClub(club) {
     byId("club-title").textContent = club.name;
     byId("club-initials").textContent = club.initials;
+    byId("club-country").textContent = club.country;
+    byId("club-league").textContent = club.league;
+    byId("club-difficulty").textContent =
+      difficultyNames[selectedDifficulty];
+    byId("club-introduction").textContent = club.introduction;
 
     byId("club-crest").style.setProperty("--club-colour", club.colour);
     byId("club-crest").setAttribute(
@@ -209,27 +226,19 @@
       `${club.name} placeholder badge`
     );
 
-    byId("club-country").textContent = club.country;
-    byId("club-league").textContent = club.league;
-    byId("club-difficulty").textContent =
-      difficultyNames[selectedDifficulty];
+    byId("club-honours").replaceChildren();
 
-    byId("club-introduction").textContent = club.introduction;
-
-    const honoursContainer = byId("club-honours");
-    honoursContainer.replaceChildren();
-
-    club.honours.forEach((honour) => {
+    club.honours.forEach(([count, name, year]) => {
       const card = document.createElement("div");
       card.className = "honour-card";
 
       card.append(
-        createTextElement("strong", "honour-count", honour.count),
-        createTextElement("span", "honour-name", honour.name),
-        createTextElement("span", "honour-year", honour.year)
+        textElement("strong", "honour-count", count),
+        textElement("span", "honour-name", name),
+        textElement("span", "honour-year", year)
       );
 
-      honoursContainer.append(card);
+      byId("club-honours").append(card);
     });
   }
 
@@ -238,55 +247,36 @@
       return;
     }
 
-    const eligibleClubs = clubs.filter(
+    const eligible = clubs.filter(
       (club) => club.id !== lastRevealedClubId
     );
 
-    if (eligibleClubs.length === 0) {
+    if (!eligible.length) {
       byId("club-status").textContent =
         "No different club is available. Widen your club filters.";
       return;
     }
 
-    const nextClub = eligibleClubs[randomIndex(eligibleClubs.length)];
+    const nextClub = eligible[randomIndex(eligible.length)];
 
     cancelReveal();
     isRevealing = true;
 
     const thisReveal = revealVersion;
+    const startedAt = performance.now();
+    const reducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
+    const duration = reducedMotion ? 0 : 2800;
 
     showScreen("club-screen");
     byId("club-screen").setAttribute("aria-busy", "true");
     byId("club-result").hidden = true;
     byId("club-shuffle").hidden = false;
     byId("club-status").textContent = "";
-
     byId("back-setup-button").focus({ preventScroll: true });
 
-    const reducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)"
-    ).matches;
-
-    const duration = reducedMotion ? 0 : 2800;
-    const startedAt = performance.now();
-
-    function finishReveal() {
-      selectedClub = nextClub;
-      lastRevealedClubId = nextClub.id;
-
-      renderClub(nextClub);
-
-      byId("club-shuffle").hidden = true;
-      byId("club-result").hidden = false;
-      byId("club-screen").removeAttribute("aria-busy");
-
-      isRevealing = false;
-      revealTimer = null;
-
-      byId("club-title").focus({ preventScroll: true });
-    }
-
-    function shuffleTick() {
+    function tick() {
       if (thisReveal !== revealVersion) {
         return;
       }
@@ -294,34 +284,66 @@
       const elapsed = performance.now() - startedAt;
 
       if (elapsed >= duration) {
-        finishReveal();
+        selectedClub = nextClub;
+        lastRevealedClubId = nextClub.id;
+        renderClub(nextClub);
+
+        byId("club-shuffle").hidden = true;
+        byId("club-result").hidden = false;
+        byId("club-screen").removeAttribute("aria-busy");
+
+        isRevealing = false;
+        revealTimer = null;
+        byId("club-title").focus({ preventScroll: true });
         return;
       }
 
       byId("shuffle-name").textContent =
         clubs[randomIndex(clubs.length)].name;
 
-      const progress = elapsed / duration;
-      const delay = 80 + Math.pow(progress, 3) * 320;
-
-      revealTimer = window.setTimeout(shuffleTick, delay);
+      const delay = 80 + Math.pow(elapsed / duration, 3) * 320;
+      revealTimer = window.setTimeout(tick, delay);
     }
 
-    shuffleTick();
+    tick();
+  }
+
+  function getSquad() {
+    if (!squads.has(selectedClub.id)) {
+      const players = starterLineups[selectedClub.id].map(
+        ([name, shortName, rating], index) => ({
+          id: nextPlayerId++,
+          name,
+          shortName,
+          rating,
+          age: null,
+          positions: tacticalPositions[index][0],
+          group: tacticalPositions[index][4]
+        })
+      );
+
+      squads.set(selectedClub.id, {
+        players,
+        startingIds: players.map((player) => player.id)
+      });
+    }
+
+    return squads.get(selectedClub.id);
   }
 
   function getLineup() {
-    if (!selectedClub) {
-      return [];
-    }
+    const squad = getSquad();
 
-    return starterLineups[selectedClub.id].map((player, index) => {
-      const assignment = tacticalPositions[index];
+    return tacticalPositions.map((assignment, index) => {
+      const player = squad.players.find(
+        (candidate) => candidate.id === squad.startingIds[index]
+      );
 
       return {
-        name: player[0],
-        shortName: player[1],
-        rating: player[2],
+        name: player ? player.name : "Vacant position",
+        shortName: player ? player.shortName : "Vacant",
+        rating: player ? player.rating : null,
+        vacant: !player,
         pitchPosition: assignment[0],
         position: assignment[1],
         role: assignment[2],
@@ -330,10 +352,18 @@
     });
   }
 
-  function showPlayerDetails(index, announce = true) {
+  function clearPlayerDetails() {
+    byId("selected-player-name").textContent = "Select a player";
+    byId("selected-player-position").textContent = "";
+    byId("selected-player-rating").hidden = true;
+    byId("selected-player-rating-caption").hidden = true;
+    byId("selected-player-facts").hidden = true;
+  }
+
+  function showPlayerDetails(index, shouldAnnounce = true) {
     const player = getLineup()[index];
 
-    if (!player) {
+    if (!player || player.vacant) {
       return;
     }
 
@@ -341,13 +371,10 @@
     byId("selected-player-position").textContent = player.position;
     byId("selected-player-rating-value").textContent =
       player.rating.toFixed(1);
-
     byId("selected-player-rating-caption").textContent =
       "League-relative quality · provisional demonstration rating";
-
     byId("selected-player-pitch-position").textContent =
       player.pitchPosition;
-
     byId("selected-player-role").textContent = player.role;
     byId("selected-player-duty").textContent = player.duty;
 
@@ -364,33 +391,27 @@
         );
       });
 
-    if (announce) {
-      byId("briefing-status").textContent =
-        `Demonstration data: ${player.name}, ${player.role}, ` +
-        `${player.duty}. Provisional rating: ${player.rating.toFixed(1)} out of 10.`;
+    if (shouldAnnounce) {
+      announce(
+        `${player.name}, ${player.role}, ${player.duty}. ` +
+        `Provisional rating: ${player.rating.toFixed(1)} out of 10.`
+      );
     }
   }
 
   function renderTactics() {
     const lineup = getLineup();
     const container = byId("tactics-players");
-
     container.replaceChildren();
 
-    byId("briefing-title").textContent = selectedClub.name;
-    byId("briefing-league").textContent = selectedClub.league;
-    byId("briefing-difficulty").textContent =
-      difficultyNames[selectedDifficulty];
-
     byId("formation-title").textContent = "4-2-3-1";
-    byId("tactics-pitch").setAttribute(
-      "aria-label",
-      `${selectedClub.name} demonstration starting eleven in a 4-2-3-1 formation`
-    );
-
     byId("tactics-pitch").style.setProperty(
       "--club-colour",
       selectedClub.colour
+    );
+    byId("tactics-pitch").setAttribute(
+      "aria-label",
+      `${selectedClub.name} demonstration 4-2-3-1 lineup`
     );
 
     formationRows.forEach((indexes) => {
@@ -401,24 +422,24 @@
 
       indexes.forEach((index) => {
         const player = lineup[index];
-
         const button = document.createElement("button");
+
         button.type = "button";
         button.className = "tactics-player";
         button.dataset.playerIndex = index;
+        button.disabled = player.vacant;
         button.setAttribute("aria-pressed", "false");
         button.setAttribute(
           "aria-label",
           `${player.name}, ${player.pitchPosition}, ` +
-          `${player.role}, ${player.duty}. View player details.`
+          `${player.role}, ${player.duty}`
         );
 
         if (player.pitchPosition === "GK") {
           button.classList.add("is-goalkeeper");
         }
 
-        // Position labels avoid inventing squad shirt numbers.
-        const shirt = createTextElement(
+        const shirt = textElement(
           "span",
           "player-shirt",
           player.pitchPosition === "GK" ? "GK" : ""
@@ -427,26 +448,236 @@
 
         button.append(
           shirt,
-          createTextElement("span", "player-pitch-name", player.shortName),
-          createTextElement("span", "player-pitch-role", player.role),
-          createTextElement("span", "player-pitch-duty", player.duty)
+          textElement("span", "player-pitch-name", player.shortName),
+          textElement("span", "player-pitch-role", player.role),
+          textElement("span", "player-pitch-duty", player.duty)
         );
 
-        button.addEventListener("click", () => {
-          showPlayerDetails(index);
-        });
-
+        button.addEventListener("click", () => showPlayerDetails(index));
         row.append(button);
       });
 
       container.append(row);
     });
 
-    showPlayerDetails(4, false);
+    clearPlayerDetails();
 
-    byId("briefing-status").textContent =
-      "Starter preview: lineups, tactical assignments, and ratings " +
-      "are demonstration data pending FM24 verification.";
+    const firstAvailable = lineup.findIndex((player) => !player.vacant);
+    const preferred = !lineup[4].vacant ? 4 : firstAvailable;
+
+    if (preferred >= 0) {
+      showPlayerDetails(preferred, false);
+    }
+  }
+
+  function updateUndoNotice() {
+    const relevant = lastRemoval &&
+      lastRemoval.clubId === selectedClub.id;
+
+    byId("squad-undo").hidden = !relevant;
+
+    if (relevant) {
+      byId("squad-undo-message").textContent =
+        `${lastRemoval.player.name} removed from your squad.`;
+    }
+  }
+
+  function removePlayer(playerId) {
+    const squad = getSquad();
+    const index = squad.players.findIndex(
+      (player) => player.id === playerId
+    );
+
+    if (index < 0) {
+      return;
+    }
+
+    const player = squad.players[index];
+
+    lastRemoval = {
+      clubId: selectedClub.id,
+      player,
+      index
+    };
+
+    squad.players.splice(index, 1);
+
+    renderSquad();
+    renderTactics();
+
+    announce(`${player.name} removed. Use Undo to restore them.`);
+    byId("undo-remove-button").focus({ preventScroll: true });
+  }
+
+  function renderSquad() {
+    const squad = getSquad();
+    const container = byId("squad-groups");
+    const sort = byId("squad-sort").value;
+
+    container.replaceChildren();
+    byId("squad-player-count").textContent = squad.players.length;
+
+    positionGroups.forEach(([groupId, groupName]) => {
+      const members = squad.players.filter(
+        (player) => player.group === groupId
+      );
+
+      if (sort === "rating") {
+        members.sort(
+          (a, b) => b.rating - a.rating || a.name.localeCompare(b.name)
+        );
+      } else if (sort === "name") {
+        members.sort((a, b) => a.name.localeCompare(b.name));
+      }
+
+      const section = document.createElement("section");
+      section.className = "squad-group";
+
+      const heading = document.createElement("div");
+      heading.className = "squad-group-heading";
+      heading.append(
+        textElement("h4", "", groupName),
+        textElement(
+          "span",
+          "squad-group-count",
+          `${members.length} ${members.length === 1 ? "player" : "players"}`
+        )
+      );
+      section.append(heading);
+
+      if (!members.length) {
+        section.append(
+          textElement("p", "squad-empty", "No players in this group.")
+        );
+        container.append(section);
+        return;
+      }
+
+      const table = document.createElement("table");
+      table.className = "squad-table";
+      table.setAttribute("aria-label", `${groupName} squad list`);
+
+      const thead = document.createElement("thead");
+      const headerRow = document.createElement("tr");
+
+      [
+        ["Player", ""],
+        ["Age", "squad-age-column"],
+        ["Pos.", "squad-position-column"],
+        ["/ 10", "squad-rating-column"],
+        ["", "squad-action-column"]
+      ].forEach(([label, className]) => {
+        const cell = textElement("th", className, label);
+        cell.scope = "col";
+
+        if (!label) {
+          cell.setAttribute("aria-label", "Remove player");
+        }
+
+        headerRow.append(cell);
+      });
+
+      thead.append(headerRow);
+      table.append(thead);
+
+      const tbody = document.createElement("tbody");
+
+      members.forEach((player) => {
+        const row = document.createElement("tr");
+
+        row.append(
+          textElement("td", "squad-player-name", player.name),
+          textElement("td", "squad-player-age", player.age ?? "—"),
+          textElement("td", "squad-player-position", player.positions)
+        );
+
+        const ratingCell = document.createElement("td");
+        ratingCell.append(
+          textElement(
+            "span",
+            "squad-player-rating",
+            player.rating.toFixed(1)
+          )
+        );
+        row.append(ratingCell);
+
+        const actionCell = document.createElement("td");
+        const remove = textElement(
+          "button",
+          "squad-remove-button",
+          "×"
+        );
+
+        remove.type = "button";
+        remove.setAttribute("aria-label", `Remove ${player.name}`);
+        remove.addEventListener("click", () => removePlayer(player.id));
+
+        actionCell.append(remove);
+        row.append(actionCell);
+        tbody.append(row);
+      });
+
+      table.append(tbody);
+      section.append(table);
+      container.append(section);
+    });
+
+    updateUndoNotice();
+  }
+
+  function switchTab(tab) {
+    activeTab = tab;
+
+    byId("tactics-panel").hidden = tab !== "tactics";
+    byId("squad-panel").hidden = tab !== "squad";
+
+    ["tactics", "squad"].forEach((name) => {
+      const button = byId(`${name}-tab-button`);
+      const selected = name === tab;
+
+      button.classList.toggle("is-active", selected);
+
+      if (selected) {
+        button.setAttribute("aria-current", "page");
+      } else {
+        button.removeAttribute("aria-current");
+      }
+    });
+
+    if (tab === "squad") {
+      renderSquad();
+      announce(
+        "Partial starter squad with provisional ratings. " +
+        "A dash means the player’s age has not been verified. " +
+        "Changes are not saved after a page refresh."
+      );
+    } else {
+      renderTactics();
+      announce(
+        "Demonstration lineup, tactical assignments, and ratings. " +
+        "Vacant positions indicate removed starting players."
+      );
+    }
+  }
+
+  function openBriefing() {
+    if (!selectedClub || isRevealing) {
+      return;
+    }
+
+    getSquad();
+
+    byId("briefing-title").textContent = selectedClub.name;
+    byId("briefing-league").textContent = selectedClub.league;
+    byId("briefing-difficulty").textContent =
+      difficultyNames[selectedDifficulty];
+
+    byId("signing-form").hidden = true;
+    byId("signing-form").reset();
+
+    switchTab("tactics");
+    showScreen("briefing-screen");
+    byId("briefing-title").focus({ preventScroll: true });
   }
 
   byId("new-challenge-button").addEventListener("click", () => {
@@ -475,16 +706,7 @@
 
   byId("generate-button").addEventListener("click", startClubDraw);
   byId("reroll-button").addEventListener("click", startClubDraw);
-
-  byId("view-challenge-button").addEventListener("click", () => {
-    if (!selectedClub || isRevealing) {
-      return;
-    }
-
-    renderTactics();
-    showScreen("briefing-screen");
-    byId("briefing-title").focus({ preventScroll: true });
-  });
+  byId("view-challenge-button").addEventListener("click", openBriefing);
 
   byId("back-club-button").addEventListener("click", () => {
     if (!selectedClub) {
@@ -493,6 +715,101 @@
 
     showScreen("club-screen");
     byId("view-challenge-button").focus({ preventScroll: true });
+  });
+
+  byId("squad-tab-button").disabled = false;
+
+  byId("tactics-tab-button").addEventListener("click", () => {
+    switchTab("tactics");
+  });
+
+  byId("squad-tab-button").addEventListener("click", () => {
+    switchTab("squad");
+  });
+
+  byId("squad-sort").addEventListener("change", () => {
+    renderSquad();
+    announce("Squad sorting updated within each position group.");
+  });
+
+  byId("add-signing-button").addEventListener("click", () => {
+    byId("signing-form").hidden = false;
+    byId("signing-form").elements.namedItem("playerName").focus();
+  });
+
+  byId("cancel-signing-button").addEventListener("click", () => {
+    byId("signing-form").reset();
+    byId("signing-form").hidden = true;
+    byId("add-signing-button").focus();
+  });
+
+  byId("signing-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+
+    const form = byId("signing-form");
+
+    if (!form.reportValidity() || !selectedClub) {
+      return;
+    }
+
+    const data = new FormData(form);
+    const name = String(data.get("playerName")).trim();
+    const positions = String(data.get("positions")).trim();
+    const age = Number(data.get("age"));
+    const rating = Number(data.get("rating"));
+    const group = String(data.get("group"));
+
+    const validGroup = positionGroups.some(
+      ([groupId]) => groupId === group
+    );
+
+    if (
+      !name ||
+      !positions ||
+      !Number.isInteger(age) ||
+      age < 14 ||
+      age > 60 ||
+      !Number.isFinite(rating) ||
+      rating < 1 ||
+      rating > 10 ||
+      !validGroup
+    ) {
+      announce("Enter a valid name, positions, age, group, and rating.");
+      return;
+    }
+
+    getSquad().players.push({
+      id: nextPlayerId++,
+      name,
+      shortName: name,
+      age,
+      positions,
+      group,
+      rating
+    });
+
+    form.reset();
+    form.hidden = true;
+    renderSquad();
+
+    announce(`${name} added to your squad with your entered rating.`);
+    byId("add-signing-button").focus();
+  });
+
+  byId("undo-remove-button").addEventListener("click", () => {
+    if (!lastRemoval || lastRemoval.clubId !== selectedClub.id) {
+      return;
+    }
+
+    const removal = lastRemoval;
+    getSquad().players.splice(removal.index, 0, removal.player);
+    lastRemoval = null;
+
+    renderSquad();
+    renderTactics();
+
+    announce(`${removal.player.name} restored to your squad.`);
+    byId("squad-tab-button").focus({ preventScroll: true });
   });
 
   updateDifficultySelection();
