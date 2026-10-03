@@ -1229,6 +1229,15 @@
     const key = challengeCacheKey();
 
     if (!savedSeasonChallenges.has(key)) {
+            if (getSeasonProgress().season > 1) {
+        savedSeasonChallenges.set(
+          key,
+          createAdaptiveSeasonChallenge()
+        );
+
+        return savedSeasonChallenges.get(key);
+      }
+
       const profile = clubSeasonProfiles[selectedClub.id];
       const target = profile.targets[selectedDifficulty];
       const bonusSettings = seasonBonusSettings[selectedDifficulty];
