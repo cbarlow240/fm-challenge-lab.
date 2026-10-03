@@ -625,13 +625,14 @@
     updateUndoNotice();
   }
 
-   function switchTab(tab) {
+    function switchTab(tab) {
     activeTab = tab;
 
     const panels = {
       tactics: "tactics-panel",
       squad: "squad-panel",
-      policies: "policies-panel"
+      policies: "policies-panel",
+      season: "season-panel"
     };
 
     Object.entries(panels).forEach(([name, panelId]) => {
@@ -663,6 +664,13 @@
       announce(
         "Season 1 transfer policies. Follow all rules together; " +
         "existing players are not affected."
+      );
+    } else if (tab === "season") {
+      renderSeasonChallenge();
+
+      announce(
+        "Season 1 objectives and provisional prediction. " +
+        "Bonus objectives are optional."
       );
     } else {
       renderTactics();
@@ -1032,6 +1040,261 @@
 
   byId("policies-tab-button").addEventListener("click", () => {
     switchTab("policies");
+  });
+
+    /* Season 1 objectives and provisional forecasts */
+
+  const savedSeasonChallenges = new Map();
+
+  // Illustrative starting forecasts, not validated FM24 predictions.
+  const clubSeasonProfiles = {
+    sunderland: {
+      baselineFinish: 10,
+      targets: {
+        rookie: 16,
+        professional: 10,
+        veteran: 6,
+        legendary: 2
+      },
+      context:
+        "This preview treats Sunderland as a side capable of " +
+        "competing in the upper half of the Championship."
+    },
+    ipswich: {
+      baselineFinish: 8,
+      targets: {
+        rookie: 16,
+        professional: 10,
+        veteran: 6,
+        legendary: 2
+      },
+      context:
+        "This preview gives Ipswich a promising starting position, " +
+        "with the potential to challenge in the upper half."
+    },
+    leicester: {
+      baselineFinish: 2,
+      targets: {
+        rookie: 6,
+        professional: 2,
+        veteran: 2,
+        legendary: 1
+      },
+      context:
+        "This preview treats Leicester as one of the strongest " +
+        "squads in the Championship and a promotion contender."
+    }
+  };
+
+  const seasonBonusSettings = {
+    rookie: {
+      goals: 55,
+      cupTitle: "Reach the FA Cup fourth round",
+      cupDescription:
+        "Progress to the fourth round of the FA Cup."
+    },
+    professional: {
+      goals: 65,
+      cupTitle: "Reach the FA Cup fifth round",
+      cupDescription:
+        "Progress to the fifth round of the FA Cup."
+    },
+    veteran: {
+      goals: 70,
+      cupTitle: "Reach an FA Cup quarter-final",
+      cupDescription:
+        "Reach the quarter-finals of the FA Cup."
+    },
+    legendary: {
+      goals: 75,
+      cupTitle: "Reach an FA Cup semi-final",
+      cupDescription:
+        "Reach the semi-finals of the FA Cup."
+    }
+  };
+
+  function ordinal(number) {
+    const lastTwoDigits = number % 100;
+
+    if (lastTwoDigits >= 11 && lastTwoDigits <= 13) {
+      return `${number}th`;
+    }
+
+    const endings = {
+      1: "st",
+      2: "nd",
+      3: "rd"
+    };
+
+    return `${number}${endings[number % 10] || "th"}`;
+  }
+
+  function createMainObjective(target) {
+    if (target === 1) {
+      return {
+        title: "Win the Championship",
+        description:
+          "Finish first in the final Championship league table. " +
+          "Promotion through the play-offs does not meet this target."
+      };
+    }
+
+    if (target === 2) {
+      return {
+        title: "Finish in the top two",
+        description:
+          "Secure automatic promotion by finishing first or second " +
+          "in the final Championship league table."
+      };
+    }
+
+    if (target === 6) {
+      return {
+        title: "Finish in the top six",
+        description:
+          "Finish sixth or higher in the final Championship league " +
+          "table to secure at least a play-off place."
+      };
+    }
+
+    return {
+      title: `Finish ${ordinal(target)} or higher`,
+      description:
+        `Finish ${ordinal(target)} or higher in the final Championship ` +
+        "league table. Cup results and bonus objectives are assessed separately."
+    };
+  }
+
+  function createPrediction(profile, policies, target) {
+    let predictedFinish = profile.baselineFinish;
+    const restrictions = [];
+
+    // Simple demonstration adjustments.
+    // Each category restricts a different route to squad improvement.
+    policies.forEach((policy) => {
+      if (policy.category === "arrivals") {
+        restrictions.push("the limit on incoming players");
+      }
+
+      if (policy.category === "age") {
+        predictedFinish += 1;
+        restrictions.push("the age limit on new signings");
+      }
+
+      if (policy.category === "wages") {
+        predictedFinish += 1;
+        restrictions.push("the wage ceiling for arrivals");
+      }
+
+      if (policy.category === "budget") {
+        predictedFinish += 1;
+        restrictions.push("the transfer spending reserve");
+      }
+    });
+
+    predictedFinish = Math.max(1, Math.min(24, predictedFinish));
+
+    const restrictionsText = restrictions.join(", ");
+
+    const targetComparison = target < predictedFinish
+      ? `Your main objective of ${ordinal(target)} or higher is more ` +
+        "ambitious than this forecast."
+      : target === predictedFinish
+        ? "Your main objective matches this forecast."
+        : "Your main objective leaves room to exceed expectations.";
+
+    return {
+      finish: predictedFinish,
+      beatTarget: predictedFinish === 1
+        ? "Title + 90 points"
+        : `${ordinal(predictedFinish - 1)} or higher`,
+      explanation:
+        `${profile.context} The forecast considers ${restrictionsText}. ` +
+        "Recruitment limits may reduce your options when strengthening " +
+        `the squad. ${targetComparison} ` +
+        "This is an illustrative estimate, not a validated simulation."
+    };
+  }
+
+  function getSeasonChallenge() {
+    const key = `${selectedClub.id}:${selectedDifficulty}:season-1`;
+
+    if (!savedSeasonChallenges.has(key)) {
+      const profile = clubSeasonProfiles[selectedClub.id];
+      const target = profile.targets[selectedDifficulty];
+      const bonusSettings = seasonBonusSettings[selectedDifficulty];
+
+      const mainObjective = createMainObjective(target);
+
+      const bonuses = [
+        {
+          title: bonusSettings.cupTitle,
+          description: bonusSettings.cupDescription
+        },
+        {
+          title: `Score ${bonusSettings.goals} league goals`,
+          description:
+            `Score at least ${bonusSettings.goals} goals across the ` +
+            "regular Championship league season. Cup matches and " +
+            "play-off matches do not count."
+        }
+      ];
+
+      const prediction = createPrediction(
+        profile,
+        getPolicies(),
+        target
+      );
+
+      savedSeasonChallenges.set(key, {
+        mainObjective,
+        bonuses,
+        prediction
+      });
+    }
+
+    return savedSeasonChallenges.get(key);
+  }
+
+  function renderSeasonChallenge() {
+    const challenge = getSeasonChallenge();
+
+    byId("main-objective-title").textContent =
+      challenge.mainObjective.title;
+
+    byId("main-objective-description").textContent =
+      challenge.mainObjective.description;
+
+    const bonusContainer = byId("bonus-objective-list");
+    bonusContainer.replaceChildren();
+
+    challenge.bonuses.forEach((bonus, index) => {
+      const card = document.createElement("article");
+      card.className = "bonus-card";
+
+      card.append(
+        textElement("span", "bonus-label", `Optional bonus ${index + 1}`),
+        textElement("h5", "", bonus.title),
+        textElement("p", "", bonus.description)
+      );
+
+      bonusContainer.append(card);
+    });
+
+    byId("predicted-finish").textContent =
+      ordinal(challenge.prediction.finish);
+
+    byId("prediction-beat-target").textContent =
+      challenge.prediction.beatTarget;
+
+    byId("prediction-explanation").textContent =
+      challenge.prediction.explanation;
+  }
+
+  byId("season-tab-button").disabled = false;
+
+  byId("season-tab-button").addEventListener("click", () => {
+    switchTab("season");
   });
 
   updateDifficultySelection();
