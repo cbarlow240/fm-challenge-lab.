@@ -3214,6 +3214,7 @@
   let readVersion = 0;
 
   function clearPreview() {
+  resetSquadImportSave();
     document.getElementById("squad-import-preview").hidden = true;
 
     document.getElementById(
