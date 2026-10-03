@@ -3,11 +3,12 @@
 (() => {
   const byId = (id) => document.getElementById(id);
 
-  const screenIds = [
+    const screenIds = [
     "home-screen",
     "difficulty-screen",
     "club-screen",
-    "briefing-screen"
+    "briefing-screen",
+    "careers-screen"
   ];
 
   const difficultyNames = {
