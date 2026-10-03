@@ -2853,7 +2853,354 @@
 
     document.getElementById("squad-import-preview").hidden = false;
   }
+  // Saved squad exports are separate from careers.
+  const squadImportStorageKey = "fm-challenge-lab-squad-exports-v1";
 
+  let savedSquadImports = [];
+  let currentImportedPlayers = null;
+  let currentSavedImportId = null;
+  let squadImportStorageReady = true;
+
+  const importSaveForm = document.getElementById(
+    "save-squad-import-form"
+  );
+
+  const importSaveButton = document.getElementById(
+    "save-squad-import-button"
+  );
+
+  const savedImportSection = document.getElementById(
+    "saved-squad-imports"
+  );
+
+  const savedImportList = document.getElementById(
+    "saved-squad-import-list"
+  );
+
+  function importNotice(message) {
+    document.getElementById("squad-import-status").textContent =
+      message;
+  }
+
+  function validGameDate(value) {
+    if (
+      typeof value !== "string" ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(value)
+    ) {
+      return false;
+    }
+
+    const date = new Date(`${value}T00:00:00Z`);
+
+    return Number.isFinite(date.getTime()) &&
+      date.toISOString().slice(0, 10) === value;
+  }
+
+  function validateSavedSquadImport(record) {
+    if (
+      !record ||
+      typeof record !== "object" ||
+      typeof record.id !== "string" ||
+      !record.id.trim() ||
+      !["clubName", "leagueName"].every((field) =>
+        typeof record[field] === "string" &&
+        record[field].trim().length > 0 &&
+        record[field].length <= 80
+      ) ||
+      !validGameDate(record.gameDate) ||
+      typeof record.savedAt !== "string" ||
+      !Number.isFinite(Date.parse(record.savedAt)) ||
+      !Array.isArray(record.players)
+    ) {
+      throw new Error("A saved squad export is incomplete.");
+    }
+
+    const headers = [
+      "Player",
+      "UID",
+      "Age",
+      "Position",
+      "Club",
+      "Wage",
+      "Preferred Foot",
+      ...attributeFields.map(([, name]) => name)
+    ];
+
+    const rows = record.players.map((player) => {
+      if (
+        !player ||
+        !player.attributes ||
+        typeof player.attributes !== "object" ||
+        ![
+          "name", "uid", "positions",
+          "club", "wage", "preferredFoot"
+        ].every((field) => typeof player[field] === "string") ||
+        !Number.isInteger(player.age) ||
+        !attributeFields.every(([, name]) =>
+          Number.isInteger(player.attributes[name]) &&
+          player.attributes[name] >= 1 &&
+          player.attributes[name] <= 20
+        )
+      ) {
+        throw new Error(
+          "A saved player has missing details or attributes."
+        );
+      }
+
+      return [
+        player.name,
+        player.uid,
+        player.age,
+        player.positions,
+        player.club,
+        player.wage,
+        player.preferredFoot,
+        ...attributeFields.map(([, name]) =>
+          player.attributes[name]
+        )
+      ];
+    });
+
+    return {
+      id: record.id,
+      clubName: record.clubName.trim(),
+      leagueName: record.leagueName.trim(),
+      gameDate: record.gameDate,
+      savedAt: record.savedAt,
+      players: readSquadRows(headers, rows)
+    };
+  }
+
+  function readSavedSquadImports() {
+    try {
+      const raw = localStorage.getItem(squadImportStorageKey);
+
+      if (raw === null) {
+        return;
+      }
+
+      const data = JSON.parse(raw);
+
+      if (
+        !data ||
+        data.version !== 1 ||
+        !Array.isArray(data.exports)
+      ) {
+        throw new Error(
+          "The saved export format is not recognised."
+        );
+      }
+
+      const checked = data.exports.map(validateSavedSquadImport);
+
+      if (
+        new Set(checked.map((record) => record.id)).size !==
+        checked.length
+      ) {
+        throw new Error("Duplicate saved export IDs.");
+      }
+
+      savedSquadImports = checked;
+    } catch (error) {
+      squadImportStorageReady = false;
+
+      importNotice(
+        "Saved squad exports could not be loaded. " +
+        "You can still preview HTML files. " +
+        "Saving is disabled to protect existing data."
+      );
+    }
+  }
+
+  function resetSquadImportSave() {
+    currentImportedPlayers = null;
+    currentSavedImportId = null;
+
+    if (!importSaveForm || !importSaveButton) {
+      return;
+    }
+
+    importSaveForm.reset();
+    importSaveForm.hidden = true;
+    importSaveButton.disabled = true;
+    importSaveButton.textContent = "Save Squad Export";
+  }
+
+  function prepareSquadImportSave(players, record = null) {
+    if (!importSaveForm || !importSaveButton) {
+      return;
+    }
+
+    currentImportedPlayers = structuredClone(players);
+    currentSavedImportId = record?.id ?? null;
+
+    const clubs = [
+      ...new Set(players.map((player) => player.club))
+    ];
+
+    importSaveForm.reset();
+
+    importSaveForm.elements.namedItem("clubName").value =
+      record?.clubName ?? (clubs.length === 1 ? clubs[0] : "");
+
+    importSaveForm.elements.namedItem("leagueName").value =
+      record?.leagueName ?? "";
+
+    importSaveForm.elements.namedItem("gameDate").value =
+      record?.gameDate ?? "";
+
+    importSaveForm.hidden = false;
+    importSaveButton.disabled = !squadImportStorageReady;
+
+    importSaveButton.textContent = record
+      ? "Update Saved Export"
+      : "Save Squad Export";
+  }
+
+  function renderSavedSquadImports() {
+    if (!savedImportList || !savedImportSection) {
+      return;
+    }
+
+    savedImportList.replaceChildren();
+    savedImportSection.hidden = savedSquadImports.length === 0;
+
+    [...savedSquadImports]
+      .sort((a, b) => b.savedAt.localeCompare(a.savedAt))
+      .forEach((record) => {
+        const card = document.createElement("section");
+        card.className = "squad-group";
+
+        const date = new Date(`${record.gameDate}T00:00:00Z`)
+          .toLocaleDateString("en-GB", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+            timeZone: "UTC"
+          });
+
+        card.append(makeElement("h4", record.clubName));
+
+        card.append(
+          makeElement(
+            "p",
+            `${record.leagueName} · ${date} · ` +
+            `${record.players.length} players`
+          )
+        );
+
+        const open = makeElement(
+          "button",
+          "Open Saved Export",
+          "button button-secondary"
+        );
+
+        open.type = "button";
+
+        open.setAttribute(
+          "aria-label",
+          `Open ${record.clubName}, ${date} squad export`
+        );
+
+        open.addEventListener("click", () => {
+          readVersion++;
+          input.value = "";
+
+          clearPreview();
+          showImportPreview(record.players);
+          prepareSquadImportSave(record.players, record);
+
+          importNotice(
+            `${record.clubName} export opened: ` +
+            `${record.players.length} players with all 41 attributes. ` +
+            "This squad export is separate from your current career."
+          );
+
+          document.getElementById("squad-import-summary")
+            .scrollIntoView({ block: "nearest" });
+        });
+
+        card.append(open);
+        savedImportList.append(card);
+      });
+  }
+
+  if (
+    importSaveForm &&
+    importSaveButton &&
+    savedImportSection &&
+    savedImportList
+  ) {
+    readSavedSquadImports();
+    renderSavedSquadImports();
+
+    importSaveForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+
+      if (
+        !currentImportedPlayers ||
+        !importSaveForm.reportValidity()
+      ) {
+        return;
+      }
+
+      if (!squadImportStorageReady) {
+        importNotice(
+          "Saving is unavailable. " +
+          "Your existing stored data has been preserved."
+        );
+        return;
+      }
+
+      const field = (name) =>
+        clean(importSaveForm.elements.namedItem(name).value);
+
+      let record;
+
+      try {
+        record = validateSavedSquadImport({
+          id: currentSavedImportId ?? crypto.randomUUID(),
+          clubName: field("clubName"),
+          leagueName: field("leagueName"),
+          gameDate: field("gameDate"),
+          savedAt: new Date().toISOString(),
+          players: currentImportedPlayers
+        });
+
+        const next = savedSquadImports.filter(
+          (item) => item.id !== record.id
+        );
+
+        next.push(record);
+
+        localStorage.setItem(
+          squadImportStorageKey,
+          JSON.stringify({ version: 1, exports: next })
+        );
+
+        savedSquadImports = next;
+      } catch (error) {
+        importNotice(
+          "The squad export could not be saved. " +
+          "Check the club, league and date. " +
+          "Your browser must allow storage and have free space. " +
+          "Existing exports are unchanged."
+        );
+        return;
+      }
+
+      currentSavedImportId = record.id;
+      importSaveButton.textContent = "Update Saved Export";
+
+      renderSavedSquadImports();
+
+      importNotice(
+        `${record.clubName} squad export saved in this browser. ` +
+        "You can reopen it after a refresh. " +
+        "It has not been attached to a career yet."
+      );
+    });
+  }
   const input = document.getElementById("squad-import-file");
   const status = document.getElementById("squad-import-status");
   const clearButton = document.getElementById(
