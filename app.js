@@ -1631,7 +1631,7 @@
         textElement(
           "p",
           "career-details",
-          `${difficultyNames[career.difficulty]} · Season 1 of 5 · ` +
+                    `${difficultyNames[career.difficulty]} · Season ${career.progress?.season || 1} · ` +
           `${career.squad.players.length} players`
         ),
         textElement("p", "career-saved-date", `Last saved: ${date}`),
