@@ -278,6 +278,178 @@
         aria-live="polite"
       ></p>
     </section>
+      <section
+      class="career-briefing"
+      id="briefing-screen"
+      aria-labelledby="briefing-title"
+      hidden
+    >
+      <div class="briefing-topbar">
+        <button
+          class="back-button"
+          id="back-club-button"
+          type="button"
+        >
+          ← Back to club
+        </button>
+
+        <button
+          class="button button-secondary"
+          id="save-career-button"
+          type="button"
+          disabled
+        >
+          Save Career
+        </button>
+      </div>
+
+      <div class="briefing-heading">
+        <div>
+          <p class="eyebrow">Your managerial briefing</p>
+
+          <h2 id="briefing-title" tabindex="-1"></h2>
+
+          <p class="club-meta">
+            <span id="briefing-league"></span>
+            <span aria-hidden="true"> · </span>
+            Season 1 of 5
+          </p>
+        </div>
+
+        <span
+          class="club-difficulty"
+          id="briefing-difficulty"
+        ></span>
+      </div>
+
+      <nav class="briefing-tabs" aria-label="Career briefing">
+        <button
+          class="briefing-tab is-active"
+          id="tactics-tab-button"
+          type="button"
+          aria-current="page"
+        >
+          Tactics
+        </button>
+
+        <button
+          class="briefing-tab"
+          id="squad-tab-button"
+          type="button"
+          disabled
+        >
+          Squad
+        </button>
+
+        <button
+          class="briefing-tab"
+          id="policies-tab-button"
+          type="button"
+          disabled
+        >
+          Transfer Policies
+        </button>
+
+        <button
+          class="briefing-tab"
+          id="season-tab-button"
+          type="button"
+          disabled
+        >
+          Season Challenge
+        </button>
+      </nav>
+
+      <div class="tactics-layout" id="tactics-panel">
+        <section
+          class="tactics-board"
+          aria-labelledby="formation-title"
+        >
+          <div class="tactics-board-heading">
+            <h3 id="formation-title"></h3>
+            <span class="formation-lock">Fixed for this season</span>
+          </div>
+
+          <div
+            class="tactics-pitch"
+            id="tactics-pitch"
+            role="group"
+            aria-label="Starting eleven"
+          >
+            <div class="pitch-markings" aria-hidden="true">
+              <div class="pitch-centre-circle"></div>
+              <div class="pitch-penalty-area pitch-penalty-top"></div>
+              <div class="pitch-penalty-area pitch-penalty-bottom"></div>
+            </div>
+
+            <div class="tactics-players" id="tactics-players"></div>
+          </div>
+
+          <p class="hero-note">
+            Select a player to view their rating, position, role, and duty.
+          </p>
+        </section>
+
+        <aside
+          class="player-briefing"
+          aria-labelledby="selected-player-name"
+        >
+          <p class="eyebrow">Player briefing</p>
+
+          <h3 id="selected-player-name">Select a player</h3>
+
+          <p class="player-position" id="selected-player-position"></p>
+
+          <div class="player-rating" id="selected-player-rating" hidden>
+            <strong id="selected-player-rating-value"></strong>
+            <span>/ 10</span>
+          </div>
+
+          <p
+            class="rating-caption"
+            id="selected-player-rating-caption"
+            hidden
+          >
+            Quality relative to the club’s league
+          </p>
+
+          <dl class="player-facts" id="selected-player-facts" hidden>
+            <div>
+              <dt>Position</dt>
+              <dd id="selected-player-pitch-position"></dd>
+            </div>
+
+            <div>
+              <dt>Assigned role</dt>
+              <dd id="selected-player-role"></dd>
+            </div>
+
+            <div>
+              <dt>Duty</dt>
+              <dd id="selected-player-duty"></dd>
+            </div>
+          </dl>
+
+          <div class="tactics-commitment">
+            <h4>Your tactical commitment</h4>
+
+            <p>
+              Keep the formation, roles, and duties for this season.
+              Temporary role or duty changes are allowed only when
+              needed because of injury. Restore the original setup
+              when the injured player returns.
+            </p>
+          </div>
+        </aside>
+      </div>
+
+      <p
+        class="setup-status"
+        id="briefing-status"
+        role="status"
+        aria-live="polite"
+      ></p>
+    </section>
   </main>
 
   <footer class="site-footer">
