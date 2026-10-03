@@ -631,6 +631,96 @@
         </aside>
       </section>
 
+            <section
+        class="season-panel"
+        id="season-panel"
+        aria-labelledby="season-title"
+        hidden
+      >
+        <div class="season-heading">
+          <p class="eyebrow">Your first season starts here</p>
+
+          <h3 id="season-title">Season Challenge</h3>
+
+          <p class="season-description">
+            Your main objective determines season success.
+            Bonus objectives are optional achievements.
+            Missing a target won’t end your career.
+          </p>
+        </div>
+
+        <article
+          class="main-objective"
+          aria-labelledby="main-objective-title"
+        >
+          <span class="objective-label">Main objective</span>
+
+          <h4 id="main-objective-title"></h4>
+
+          <p id="main-objective-description"></p>
+        </article>
+
+        <section
+          class="bonus-objectives"
+          aria-labelledby="bonus-objectives-title"
+        >
+          <h4 id="bonus-objectives-title">Bonus objectives</h4>
+
+          <p class="bonus-introduction">
+            Extra goals to aim for. Missing these won’t count
+            as failing your main challenge.
+          </p>
+
+          <div class="bonus-grid" id="bonus-objective-list"></div>
+        </section>
+
+        <aside
+          class="prediction-panel"
+          aria-labelledby="prediction-title"
+        >
+          <div class="prediction-heading">
+            <div>
+              <p class="eyebrow">Can you exceed expectations?</p>
+
+              <h4 id="prediction-title">Beat the Prediction</h4>
+            </div>
+
+            <span class="prediction-badge">Season 1 forecast</span>
+          </div>
+
+          <div class="prediction-result">
+            <div>
+              <span class="prediction-label">
+                Predicted league finish
+              </span>
+
+              <strong id="predicted-finish"></strong>
+            </div>
+
+            <div>
+              <span class="prediction-label">Your target to beat it</span>
+
+              <strong id="prediction-beat-target"></strong>
+            </div>
+          </div>
+
+          <p
+            class="prediction-explanation"
+            id="prediction-explanation"
+          ></p>
+
+          <p class="prediction-note">
+            An estimate, not a guaranteed result. Beating the
+            prediction is separate from your main objective.
+          </p>
+        </aside>
+
+        <p class="preview-note">
+          Starter preview · season targets and predictions are
+          provisional while we verify the FM24 data.
+        </p>
+      </section>
+
       <p
         class="setup-status"
         id="briefing-status"
