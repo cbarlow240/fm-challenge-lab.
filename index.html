@@ -479,7 +479,48 @@
             </button>
           </div>
         </div>
+<section class="signing-form" aria-labelledby="squad-import-title">
+  <h4 id="squad-import-title">Import your FM24 squad</h4>
 
+  <p class="signing-note">
+    Choose an HTML squad export from Football Manager.
+    Preview the players and attributes before using them in a career.
+  </p>
+
+  <label class="signing-field" for="squad-import-file">
+    Squad export
+    <input
+      class="squad-input"
+      id="squad-import-file"
+      type="file"
+      accept=".html,.htm,text/html"
+      aria-describedby="squad-import-status"
+    >
+  </label>
+
+  <p id="squad-import-status" role="status">
+    Choose a file to preview your squad.
+  </p>
+
+  <div id="squad-import-preview" hidden>
+    <h4 id="squad-import-summary"></h4>
+
+    <p class="signing-note">
+      This preview is separate from your current career.
+      Player quality ratings will need a comparison with their league.
+    </p>
+
+    <div class="squad-groups" id="squad-import-players"></div>
+
+    <button
+      class="button button-secondary"
+      id="clear-squad-import-button"
+      type="button"
+    >
+      Clear Preview
+    </button>
+  </div>
+</section>
         <form class="signing-form" id="signing-form" hidden>
           <h4>Add a signing</h4>
 
