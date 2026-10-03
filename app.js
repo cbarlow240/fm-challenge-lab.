@@ -1222,7 +1222,7 @@
   }
 
   function getSeasonChallenge() {
-    const key = `${selectedClub.id}:${selectedDifficulty}:season-1`;
+    const key = challengeCacheKey();
 
     if (!savedSeasonChallenges.has(key)) {
       const profile = clubSeasonProfiles[selectedClub.id];
