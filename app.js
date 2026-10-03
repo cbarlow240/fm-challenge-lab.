@@ -258,8 +258,11 @@
       return;
     }
 
-    const nextClub = eligible[randomIndex(eligible.length)];
+       if (!prepareNewDraft()) {
+      return;
+    }
 
+    const nextClub = eligible[randomIndex(eligible.length)];
     cancelReveal();
     isRevealing = true;
 
