@@ -830,7 +830,10 @@
 
     const removal = lastRemoval;
     getSquad().players.splice(removal.index, 0, removal.player);
-        lastRemoval = null;
+            lastRemoval = null;
+    seasonProgress = career.progress
+      ? structuredClone(career.progress)
+      : createInitialSeasonProgress();
     seasonProgress = null;
 
     renderSquad();
