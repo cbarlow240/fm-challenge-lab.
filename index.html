@@ -520,7 +520,68 @@
   <p id="squad-import-status" role="status">
     Choose a file to preview your squad.
   </p>
+<form
+  class="signing-form"
+  id="save-squad-import-form"
+  hidden
+>
+  <h4>Save this squad export</h4>
 
+  <p class="signing-note">
+    Record which club, league and in-game date this squad belongs to.
+    Saved exports stay in this browser.
+  </p>
+
+  <div class="signing-fields">
+    <label class="signing-field">
+      Club name
+      <input
+        class="squad-input"
+        name="clubName"
+        type="text"
+        maxlength="80"
+        placeholder="Manchester United"
+        required
+      >
+    </label>
+
+    <label class="signing-field">
+      League
+      <input
+        class="squad-input"
+        name="leagueName"
+        type="text"
+        maxlength="80"
+        placeholder="English Premier Division"
+        required
+      >
+    </label>
+
+    <label class="signing-field">
+      In-game date
+      <input
+        class="squad-input"
+        name="gameDate"
+        type="date"
+        required
+      >
+    </label>
+  </div>
+
+  <button
+    class="button button-primary"
+    id="save-squad-import-button"
+    type="submit"
+    disabled
+  >
+    Save Squad Export
+  </button>
+</form>
+
+<section id="saved-squad-imports" hidden>
+  <h4>Your saved squad exports</h4>
+  <div class="squad-groups" id="saved-squad-import-list"></div>
+</section>
   <div id="squad-import-preview" hidden>
     <h4 id="squad-import-summary"></h4>
 
