@@ -1684,7 +1684,7 @@
     const squad = structuredClone(career.squad);
     squads.set(selectedClub.id, squad);
 
-    const key = `${selectedClub.id}:${selectedDifficulty}:season-1`;
+    const key = challengeCacheKey();
 
     savedPolicySets.set(key, structuredClone(career.policies));
     savedSeasonChallenges.set(key, structuredClone(career.challenge));
