@@ -1,4 +1,4 @@
-"use strict";
+he comparison could not be saved. Check the league and date, and that browser storage has free space. Existing saved comparisons are unchanged."use strict";
 
 (() => {
   const byId = (id) => document.getElementById(id);
@@ -3415,10 +3415,36 @@
         const leagueName = clean(leagueForm.elements.namedItem("leagueName").value);
         const gameDate = clean(leagueForm.elements.namedItem("gameDate").value);
         const key = leagueIdentity(leagueName, gameDate);
-        const existing = leagueReferences.find((record) => leagueIdentity(record.leagueName, record.gameDate) === key);
-        const record = validateLeagueReference({ id: existing?.id ?? crypto.randomUUID(),
-          leagueName, gameDate, savedAt: new Date().toISOString(), players: pendingLeaguePlayers });
-        const next = leagueReferences.filter((item) => leagueIdentity(item.leagueName, item.gameDate) !== key);
+
+        const existing = leagueReferences.find((item) =>
+          item.id === selectedLeagueReferenceId
+        ) ?? leagueReferences.find((item) =>
+          leagueIdentity(item.leagueName, item.gameDate) === key
+        );
+
+        const conflict = leagueReferences.some((item) =>
+          item.id !== existing?.id &&
+          leagueIdentity(item.leagueName, item.gameDate) === key
+        );
+
+        if (conflict) {
+          leagueStatus.textContent =
+            "A comparison is already saved for this league and date. Open that comparison to use or update it.";
+          return;
+        }
+
+        const record = validateLeagueReference({
+          id: existing?.id ?? crypto.randomUUID(),
+          leagueName,
+          gameDate,
+          savedAt: new Date().toISOString(),
+          players: pendingLeaguePlayers
+        });
+
+        const next = leagueReferences.filter((item) =>
+          item.id !== record.id
+        );
+
         next.push(record);
         localStorage.setItem(leagueCacheKey, JSON.stringify({ version: 1, comparisons: next }));
         leagueReferences = next;
