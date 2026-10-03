@@ -952,7 +952,7 @@
   }
 
   function getPolicies() {
-    const key = `${selectedClub.id}:${selectedDifficulty}:season-1`;
+    const key = challengeCacheKey();
 
     if (!savedPolicySets.has(key)) {
       const settings = policySettings[selectedDifficulty];
