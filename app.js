@@ -987,6 +987,62 @@
 
       // One rule per category avoids duplicate or opposing requirements.
       // Every rule is a ceiling; none forces a conflicting signing.
+            const progress = getSeasonProgress();
+
+      policies.forEach((policy) => {
+        policy.rule = policy.rule.replaceAll(
+          "Season 1",
+          `Season ${progress.season}`
+        );
+
+        policy.rule = policy.rule.replaceAll(
+          "when this challenge starts",
+          "when this season starts"
+        );
+
+        policy.clarification = policy.clarification.replaceAll(
+          "when you start",
+          "when this season starts"
+        );
+
+        if (
+          policy.category === "budget" &&
+          progress.transferBudget !== null
+        ) {
+          const percentage = Number(
+            policy.rule.match(/(\d+)%/)[1]
+          );
+
+          const spendingLimit =
+            progress.transferBudget * percentage / 100;
+
+          policy.clarification +=
+            ` Your recorded starting transfer budget is ` +
+            `${formatBudget(progress.transferBudget)}. ` +
+            `That gives an initial spending limit of ` +
+            `${formatBudget(spendingLimit)} before any additional ` +
+            "funds the board makes available.";
+        }
+
+        if (
+          policy.category === "wages" &&
+          progress.highestWeeklyWage !== null
+        ) {
+          const percentage = Number(
+            policy.rule.match(/(\d+)%/)[1]
+          );
+
+          const wageLimit =
+            progress.highestWeeklyWage * percentage / 100;
+
+          policy.clarification +=
+            ` Your recorded starting highest basic wage is ` +
+            `${formatBudget(progress.highestWeeklyWage)} per week. ` +
+            `The limit for each arrival is therefore ` +
+            `${formatBudget(wageLimit)} per week.`;
+        }
+      });
+
       const categories = new Set(
         policies.map((policy) => policy.category)
       );
