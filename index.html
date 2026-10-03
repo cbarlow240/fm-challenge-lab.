@@ -177,6 +177,107 @@
         </p>
       </div>
     </section>
+      <section
+      class="club-reveal"
+      id="club-screen"
+      aria-labelledby="club-title"
+      hidden
+    >
+      <button
+        class="back-button"
+        id="back-setup-button"
+        type="button"
+      >
+        ← Change difficulty
+      </button>
+
+      <div id="club-shuffle" hidden>
+        <p class="eyebrow">Searching for your next chapter</p>
+
+        <div class="shuffle-symbol" aria-hidden="true">⇄</div>
+
+        <h2 id="shuffle-name" aria-hidden="true">
+          Finding your club…
+        </h2>
+
+        <div class="shuffle-track" aria-hidden="true"></div>
+
+        <p class="setup-description" role="status">
+          Choosing your next club…
+        </p>
+      </div>
+
+      <div id="club-result" hidden>
+        <div class="club-heading">
+          <div
+            class="club-crest"
+            id="club-crest"
+            aria-label="Placeholder club badge"
+          >
+            <span id="club-initials"></span>
+          </div>
+
+          <div class="club-heading-content">
+            <p class="eyebrow">Your next club awaits</p>
+
+            <h2 id="club-title" tabindex="-1"></h2>
+
+            <p class="club-meta">
+              <span id="club-country"></span>
+              <span aria-hidden="true"> · </span>
+              <span id="club-league"></span>
+            </p>
+
+            <p class="club-difficulty" id="club-difficulty"></p>
+          </div>
+        </div>
+
+        <p class="club-introduction" id="club-introduction"></p>
+
+        <section class="club-honours" aria-labelledby="honours-title">
+          <h3 id="honours-title">
+            Club honours at the FM24 starting point
+          </h3>
+
+          <div class="honours-grid" id="club-honours"></div>
+        </section>
+
+        <div class="reveal-actions">
+          <button
+            class="button button-secondary"
+            id="reroll-button"
+            type="button"
+          >
+            Roll Again
+            <span aria-hidden="true">⇄</span>
+          </button>
+
+          <button
+            class="button button-primary"
+            id="view-challenge-button"
+            type="button"
+          >
+            View My Challenge
+            <span aria-hidden="true">→</span>
+          </button>
+        </div>
+
+        <p class="hero-note">
+          Unlimited rerolls. No back-to-back repeats.
+        </p>
+
+        <p class="preview-note">
+          Starter club pool · placeholder badges
+        </p>
+      </div>
+
+      <p
+        class="setup-status"
+        id="club-status"
+        role="status"
+        aria-live="polite"
+      ></p>
+    </section>
   </main>
 
   <footer class="site-footer">
