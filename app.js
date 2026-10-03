@@ -18,7 +18,7 @@
     legendary: "Legendary"
   };
 
-  const clubs = [
+  const previewClubs = [
     {
       id: "sunderland",
       name: "Sunderland",
@@ -71,6 +71,133 @@
       ]
     }
   ];
+
+  const clubs = [];
+  let clubPoolReady = false;
+  let clubPoolError = "";
+  const appSourceUrl = document.currentScript?.src || window.location.href;
+
+  function installClubDatabase(database) {
+    if (
+      !database || database.game !== "Football Manager 2024" ||
+      !Array.isArray(database.clubs) || database.clubs.length < 1000 ||
+      database.countryCount !== 55 ||
+      !database.clubs.every(club => (
+        club && typeof club.fmId === "string" && /^\d+$/.test(club.fmId) &&
+        ["name", "leagueId", "league", "leagueCountry"].every(field => (
+          typeof club[field] === "string" && club[field].trim().length > 0
+        )) &&
+        Number.isInteger(club.leagueGroupSize) &&
+        club.leagueGroupSize >= 2 && club.leagueGroupSize <= 60 &&
+        typeof club.requiresEligibilityCheck === "boolean"
+      )) ||
+      new Set(database.clubs.map(club => club.fmId)).size !== database.clubs.length
+    ) {
+      throw new Error("The full FM24 club list is missing or incomplete.");
+    }
+
+    const legacyIds = { "722": "sunderland", "667": "ipswich", "673": "leicester" };
+    const colours = ["#3269c0", "#297e82", "#755ac0", "#b84459", "#367fa9"];
+    const available = database.clubs.filter(club => !club.requiresEligibilityCheck);
+    if (new Set(available.map(club => club.leagueCountry)).size !== 55) {
+      throw new Error("The FM24 club list does not cover every expected country.");
+    }
+
+    const nextClubs = available.map(source => {
+      const preview = previewClubs.find(club => club.id === legacyIds[source.fmId]);
+      const words = source.name.replace(/[^\p{L}\p{N} ]/gu, "").trim().split(/\s+/);
+      const initials = (words.length > 1
+        ? words.map(word => Array.from(word)[0]).slice(0, 4).join("")
+        : Array.from(words[0] || "FM").slice(0, 3).join("")).toUpperCase();
+      return {
+        id: preview?.id || `fm24-${source.fmId}`,
+        fmId: source.fmId,
+        name: preview?.name || source.name,
+        initials: preview?.initials || initials,
+        country: source.leagueCountry,
+        league: preview?.league || source.league,
+        leagueId: source.leagueId,
+        leagueSize: source.leagueGroupSize,
+        // Decorative colours for placeholder badges, not official club colours.
+        colour: preview?.colour || colours[Number(source.fmId) % colours.length],
+        introduction: preview?.introduction ||
+          `Your next career starts with ${source.name} in ${source.league}. ` +
+          "Keep this club or roll again to find your next challenge.",
+        honours: preview?.honours || []
+      };
+    });
+
+    clubs.splice(0, clubs.length, ...nextClubs);
+    clubPoolReady = true;
+    clubPoolError = "";
+    byId("club-result").querySelector(".preview-note").textContent =
+      `${clubs.length.toLocaleString("en-GB")} club options · 55 league countries · placeholder badges`;
+    byId("club-result").querySelector(".hero-note").textContent =
+      "Unlimited rerolls. Each draw is independent, so clubs can repeat.";
+  }
+
+  function initialiseClubPool() {
+    function ready() {
+      try {
+        installClubDatabase(window.FM24_CLUB_DATABASE);
+        loadSavedCareers();
+        byId("my-careers-button").disabled = false;
+      } catch (error) {
+        clubPoolError = "The club list could not be loaded. Refresh the page or check that clubs.js was saved.";
+        byId("careers-status").textContent = clubPoolError;
+      }
+      updateDifficultySelection();
+    }
+
+    byId("my-careers-button").disabled = true;
+    if (window.FM24_CLUB_DATABASE) {
+      ready();
+      return;
+    }
+
+    // Also supports the previous index.html while the user updates the page.
+    updateDifficultySelection();
+    const script = document.createElement("script");
+    script.src = new URL("clubs.js?v=1", appSourceUrl).href;
+    script.onload = ready;
+    script.onerror = () => {
+      clubPoolError = "The club list could not be loaded. Refresh the page or check that clubs.js was saved.";
+      updateDifficultySelection();
+    };
+    document.head.append(script);
+  }
+
+  function hasClubBriefing() {
+    return Boolean(selectedClub && Object.hasOwn(starterLineups, selectedClub.id));
+  }
+
+  function renderBriefingAvailability() {
+    let notice = byId("club-data-notice");
+    if (!notice) {
+      notice = document.createElement("section");
+      notice.id = "club-data-notice";
+      notice.className = "signing-form";
+      notice.setAttribute("aria-labelledby", "club-data-notice-title");
+      byId("briefing-screen").insertBefore(
+        notice, byId("briefing-screen").querySelector(".briefing-tabs")
+      );
+    }
+
+    const available = hasClubBriefing();
+    notice.hidden = available;
+    byId("briefing-screen").querySelector(".briefing-tabs").hidden = !available;
+    byId("briefing-screen").querySelector(".preview-note").hidden = !available;
+    if (!available) {
+      const heading = textElement("h3", "", "Your club is selected");
+      heading.id = "club-data-notice-title";
+      notice.replaceChildren(
+        heading,
+        textElement("p", "", `${selectedClub.name} · ${selectedClub.league}`),
+        textElement("p", "", "You can save this club choice as a career or return to the draw and roll again."),
+        textElement("p", "signing-note", "This club’s FM24 squad and ratings are not loaded yet. Its formation, player roles, transfer rules and season challenge will follow once its club data is available.")
+      );
+    }
+  }
 
   // Partial demonstration squads. Ratings are provisional.
   const starterLineups = {
@@ -148,7 +275,6 @@
 
   let selectedDifficulty = null;
   let selectedClub = null;
-  let lastRevealedClubId = null;
   let revealTimer = null;
   let revealVersion = 0;
   let isRevealing = false;
@@ -181,11 +307,13 @@
     );
 
     selectedDifficulty = input ? input.value : null;
-    byId("generate-button").disabled = selectedDifficulty === null;
+    byId("generate-button").disabled = selectedDifficulty === null || !clubPoolReady;
 
-    byId("difficulty-status").textContent = selectedDifficulty
-      ? `${difficultyNames[selectedDifficulty]} selected. Ready for your challenge.`
-      : "Select a difficulty to continue.";
+    byId("difficulty-status").textContent = clubPoolError || (!clubPoolReady
+      ? "Loading the FM24 club list…"
+      : selectedDifficulty
+        ? `${difficultyNames[selectedDifficulty]} selected. Ready to draw from ${clubs.length.toLocaleString("en-GB")} clubs.`
+        : "Select a difficulty to continue.");
   }
 
   function randomIndex(length) {
@@ -229,6 +357,15 @@
 
     byId("club-honours").replaceChildren();
 
+    byId("club-honours").closest(".club-honours").hidden = !club.honours.length;
+    byId("club-country").title = "League country";
+    const arrow = textElement("span", "", "→");
+    arrow.setAttribute("aria-hidden", "true");
+    byId("view-challenge-button").replaceChildren(
+      document.createTextNode(hasClubBriefing() ? "View My Challenge " : "View Club Briefing "),
+      arrow
+    );
+
     club.honours.forEach(([count, name, year]) => {
       const card = document.createElement("div");
       card.className = "honour-card";
@@ -244,17 +381,16 @@
   }
 
   function startClubDraw() {
-    if (selectedDifficulty === null || isRevealing) {
+    if (selectedDifficulty === null || isRevealing || !clubPoolReady) {
       return;
     }
 
-    const eligible = clubs.filter(
-      (club) => club.id !== lastRevealedClubId
-    );
+    // One flat pool: each club has the same chance on every independent draw.
+    const eligible = clubs;
 
     if (!eligible.length) {
       byId("club-status").textContent =
-        "No different club is available. Widen your club filters.";
+        "The FM24 club list is unavailable. Refresh the page and try again.";
       return;
     }
 
@@ -289,7 +425,6 @@
 
       if (elapsed >= duration) {
         selectedClub = nextClub;
-        lastRevealedClubId = nextClub.id;
         renderClub(nextClub);
 
         byId("club-shuffle").hidden = true;
@@ -314,7 +449,7 @@
 
   function getSquad() {
     if (!squads.has(selectedClub.id)) {
-      const players = starterLineups[selectedClub.id].map(
+      const players = (starterLineups[selectedClub.id] || []).map(
         ([name, shortName, rating], index) => ({
           id: nextPlayerId++,
           name,
@@ -328,7 +463,9 @@
 
       squads.set(selectedClub.id, {
         players,
-        startingIds: players.map((player) => player.id)
+        startingIds: players.length
+          ? players.map((player) => player.id)
+          : tacticalPositions.map(() => nextPlayerId++)
       });
     }
 
@@ -631,6 +768,15 @@
   }
 
     function switchTab(tab) {
+    if (!hasClubBriefing()) {
+      activeTab = "overview";
+      ["tactics-panel", "squad-panel", "policies-panel", "season-panel"].forEach(id => {
+        byId(id).hidden = true;
+      });
+      announce("Club choice ready to save. The club’s full challenge briefing is not available yet.");
+      return;
+    }
+
     activeTab = tab;
 
     const panels = {
@@ -702,6 +848,7 @@
     byId("signing-form").hidden = true;
     byId("signing-form").reset();
 
+    renderBriefingAvailability();
     switchTab("tactics");
             byId("season-results-form").reset();
     byId("season-results-form").hidden = true;
@@ -836,10 +983,7 @@
     const removal = lastRemoval;
     getSquad().players.splice(removal.index, 0, removal.player);
             lastRemoval = null;
-    seasonProgress = career.progress
-      ? structuredClone(career.progress)
-      : createInitialSeasonProgress();
-    seasonProgress = null;
+
 
     renderSquad();
     renderTactics();
@@ -1454,6 +1598,13 @@
       return false;
     }
 
+    if (career.briefingStatus === "club-selected") {
+      return squad.players.length === 0 &&
+        Array.isArray(career.policies) && career.policies.length === 0 &&
+        career.challenge === null && isValidSeasonProgress(career.progress) &&
+        career.progress?.season === 1 && career.progress.history.length === 0;
+    }
+
     const policies = career.policies;
     const allowedCategories = ["arrivals", "age", "wages", "budget"];
 
@@ -1565,9 +1716,10 @@
       difficulty: selectedDifficulty,
       createdAt: existing ? existing.createdAt : now,
       updatedAt: now,
+      briefingStatus: hasClubBriefing() ? "preview" : "club-selected",
       squad: structuredClone(getSquad()),
-      policies: structuredClone(getPolicies()),
-            challenge: structuredClone(getSeasonChallenge()),
+      policies: hasClubBriefing() ? structuredClone(getPolicies()) : [],
+      challenge: hasClubBriefing() ? structuredClone(getSeasonChallenge()) : null,
       progress: structuredClone(getSeasonProgress())
     };
   }
@@ -1577,6 +1729,7 @@
       name: career.name,
       clubId: career.clubId,
       difficulty: career.difficulty,
+      briefingStatus: career.briefingStatus,
       squad: career.squad,
       policies: career.policies,
             challenge: career.challenge,
@@ -1630,6 +1783,7 @@
     currentCareerId = null;
     selectedClub = null;
     lastRemoval = null;
+    seasonProgress = null;
 
     squads.clear();
     savedPolicySets.clear();
@@ -1692,8 +1846,10 @@
         textElement(
           "p",
           "career-details",
-                    `${difficultyNames[career.difficulty]} · Season ${career.progress?.season || 1} · ` +
-          `${career.squad.players.length} players`
+          career.briefingStatus === "club-selected"
+            ? `${difficultyNames[career.difficulty]} · Club choice saved`
+            : `${difficultyNames[career.difficulty]} · Season ${career.progress?.season || 1} · ` +
+              `${career.squad.players.length} players`
         ),
         textElement("p", "career-saved-date", `Last saved: ${date}`),
         actions
@@ -1751,8 +1907,10 @@
     selectedClub = clubs.find((club) => club.id === career.clubId);
     selectedDifficulty = career.difficulty;
     currentCareerId = career.id;
-    lastRevealedClubId = career.clubId;
     lastRemoval = null;
+    seasonProgress = career.progress
+      ? structuredClone(career.progress)
+      : createInitialSeasonProgress();
 
     squads.clear();
     savedPolicySets.clear();
@@ -1855,7 +2013,9 @@
     renderSavedCareers();
 
     byId("careers-status").textContent =
-      `${name} saved privately. Future squad changes save automatically.`;
+      hasClubBriefing()
+        ? `${name} saved privately. Future squad changes save automatically.`
+        : `${name} saved privately. You can return to this club choice from My Careers.`;
 
     byId("careers-title").focus({ preventScroll: true });
   });
@@ -1914,7 +2074,7 @@
     return {
       season: 1,
       league: selectedClub.league,
-      leagueSize: 24,
+      leagueSize: selectedClub.leagueSize || 24,
       currency: "GBP",
       transferBudget: null,
       highestWeeklyWage: null,
@@ -2566,8 +2726,7 @@
     );
   });
 
-  loadSavedCareers();
-  updateDifficultySelection();
+  initialiseClubPool();
 })();
 // FM24 squad export preview. Separate from saved careers.
 (() => {
@@ -3968,4 +4127,5 @@ prepareSquadImportSave(players);
     input.focus();
   });
 })();
+
 
