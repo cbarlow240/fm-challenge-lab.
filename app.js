@@ -232,7 +232,8 @@
     const cached = squads.get(selectedClub.id);
     // Reopening a career preserves its players and edits.
     if (cached) return cached.source || null;
-    return globalThis.fmSavedClubSquad?.(selectedClub) || null;
+    return globalThis.fmStartingClubSquad?.(selectedClub) ||
+      globalThis.fmSavedClubSquad?.(selectedClub) || null;
   }
 
   function hasClubBriefing() {
@@ -505,7 +506,9 @@
   function ensureSquadTactic(squad) {
     if(!squad.source || squad.tacticChecked) return;
     // Old saved careers may predate storing the attributes used by this feature.
-    const snapshot=globalThis.fmSavedClubSquad?.(selectedClub);
+    const starting=globalThis.fmStartingClubSquad?.(selectedClub);
+    const snapshot=starting?.gameDate===squad.source.gameDate && starting?.leagueName===squad.source.leagueName
+      ? starting : globalThis.fmSavedClubSquad?.(selectedClub);
     if(snapshot && snapshot.gameDate===squad.source.gameDate && snapshot.leagueName===squad.source.leagueName) {
       const originals=new Map(snapshot.players.map(p=>[p.uid,p]));
       squad.players.forEach(player=>{if(!player.attributes) player.attributes=originals.get(player.uid)?.attributes;});
@@ -1130,7 +1133,7 @@
         }));
         squads.set(selectedClub.id, {
           players, startingIds: tacticalPositions.map(() => nextPlayerId++),
-          source: { gameDate: snapshot.gameDate, leagueName: snapshot.leagueName,
+          source: { kind: snapshot.kind || "saved-export", gameDate: snapshot.gameDate, leagueName: snapshot.leagueName,
             sampleSize: snapshot.sampleSize, clubCount: snapshot.clubCount }
         });
         ensureSquadTactic(squads.get(selectedClub.id));
@@ -1422,7 +1425,17 @@
     container.replaceChildren();
     byId("squad-player-count").textContent = squad.players.length;
     const note = byId("squad-panel").querySelector(".preview-note");
-    if (note) note.textContent = squad.source
+    if (note) {
+      if (squad.source?.kind === "starting-database") {
+        note.textContent = `Original FM24 squad snapshot: ${squad.source.gameDate} - ${squad.source.leagueName}. ` +
+          `${squad.source.sampleSize} comparison players across ${squad.source.clubCount} represented clubs. ` +
+          "Includes youth and reserves where their club links could be verified; some squads are incomplete. " +
+          "Ratings estimate league-relative quality against adult players in the same position group, with each club given equal weight. " +
+          "A dash means the comparison sample is too small. These are estimates, not official FM ability ratings. " +
+          (squad.tactic ? `Open Tactics for your fixed ${squad.tactic.name} formation and roles.`
+            : "A full eleven in the supported formations could not be matched to the available positions, so tactics are pending.");
+      } else {
+        note.textContent = squad.source
       ? `Save snapshot: ${squad.source.gameDate} \u00b7 ${squad.source.leagueName}. ` +
         `${squad.source.sampleSize} comparison players across ${squad.source.clubCount} clubs. ` +
         "These are the players present in your export, including youth and reserves; the list may be incomplete. " +
@@ -1432,6 +1445,8 @@
         (squad.tactic ? `Open Tactics for your fixed ${squad.tactic.name} formation and roles.`
           : "A full eleven in the supported formations could not be matched to the exported positions, so tactics are pending.")
       : "Partial demonstration squad with provisional ratings. Save a career to keep your changes.";
+      }
+    }
 
     positionGroups.forEach(([groupId, groupName]) => {
       const members = squad.players.filter(
@@ -2428,6 +2443,7 @@
 
     const squad = career.squad;
     if (squad && (!validGeneratedTactic(squad.tactic) || (squad.source && (
+      (squad.source.kind !== undefined && !["saved-export", "starting-database"].includes(squad.source.kind)) ||
       !/^\d{4}-\d{2}-\d{2}$/.test(squad.source.gameDate) ||
       typeof squad.source.leagueName !== "string" || !squad.source.leagueName.trim() ||
       !Number.isInteger(squad.source.sampleSize) || squad.source.sampleSize < 1 ||
