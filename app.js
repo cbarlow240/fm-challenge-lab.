@@ -1806,25 +1806,46 @@
   const savedPolicySets = new Map();
 
   const policySettings = {
-    rookie: {
-      arrivals: [8, 9, 10]
-    },
-    professional: {
-      arrivals: [6, 7],
-      budget: [85, 90]
-    },
-    veteran: {
-      arrivals: [4, 5],
-      age: [26, 27],
-      wages: [100]
-    },
-    legendary: {
-      arrivals: [3, 4],
-      age: [23, 24],
-      wages: [80, 90],
-      budget: [70, 75]
-    }
+    rookie: {arrivals:[8,9,10],age:[30,31],budget:[95],wages:[110],loans:[4],feeShare:[45],ruleCount:2},
+    professional: {arrivals:[6,7,8],age:[28,29],budget:[85,90],wages:[100],loans:[3],feeShare:[35],ruleCount:3},
+    veteran: {arrivals:[4,5,6],age:[26,27],budget:[75,85],wages:[90,100],loans:[2],feeShare:[25,30],ruleCount:3},
+    legendary: {arrivals:[3,4,5],age:[23,24],budget:[65,75],wages:[80,90],loans:[1,2],feeShare:[20,25],ruleCount:4}
   };
+  const recruitmentThemes = {
+    balanced:{label:'Balanced rebuild',categories:['budget','age','loans','wages','fees']},
+    youth:{label:'Develop the next generation',categories:['age','loans','budget','wages','fees']},
+    sustainable:{label:'Sustainable spending',categories:['budget','wages','fees','loans','age']},
+    permanent:{label:'Build a settled squad',categories:['loans','age','wages','fees','budget']},
+    local:{label:'Recruit closer to home',categories:['market','wages','loans','age','budget']}
+  };
+  function chooseRecruitmentTheme() {
+    const progress=getSeasonProgress();
+    const previous=progress.history.at(-1)?.policies?.[0]?.theme;
+    const available=Object.keys(recruitmentThemes).filter(theme =>
+      theme!==previous && (theme!=='local' || ['veteran','legendary'].includes(selectedDifficulty)));
+    return available[randomIndex(available.length)];
+  }
+  function createLoanPolicy(limit) {
+    return {category:'loans',title:'Build your own squad',
+      rule:`Bring in no more than ${limit} first-team loan ${limit===1?'player':'players'} during Season 1. Each incoming player counts once, even if their loan is extended.`,
+      reason:'Develop a settled squad without relying on a large temporary rebuild.',
+      example:`${limit} incoming loans meet the limit. A further incoming loan does not.`,
+      clarification:'Outgoing loans, your own players returning, and extending an existing loan do not use another place. Incoming loans also count towards the overall arrivals limit. Academy-only loans count if promoted to the first team that season.'};
+  }
+  function createFeePolicy(percent) {
+    return {category:'fees',title:'Spread the investment',
+      rule:`The guaranteed transfer fee or loan fee for any one arrival must not exceed ${percent}% of your Season 1 transfer allowance.`,
+      reason:'Avoid spending most of the available money on one player.',
+      example:`With a 1,000,000 transfer allowance, the guaranteed fee for one player is capped at ${(percent*10000).toLocaleString('en-GB')}.`,
+      clarification:"Use the recorded starting transfer budget plus extra money the board actually releases, including retained sale proceeds. Count guaranteed instalments and guaranteed add-ons, including payments due later. Separate deals for the same player are combined. Free agents remain allowed; the board's overall transfer and wage budgets still apply."};
+  }
+  function createMarketPolicy() {
+    return {category:'market',title:'Know your recruitment market',
+      rule:'For Season 1, recruit players already contracted to clubs in the same national league system as your current club, or free agents from any country.',
+      reason:'Work within a defined recruitment market rather than searching every league.',
+      example:"A player from any division in your club's national league system is eligible, regardless of nationality. A free agent is also eligible.",
+      clarification:"Apply the rule when agreeing the deal. Use the parent club's league system for a player currently out on loan. Incoming loans follow this rule too. A player signed from a foreign club is not a free agent simply because their contract will expire before arrival. Existing players and contract renewals are exempt."};
+  }
 
   function choosePolicyLimit(options) {
     return options[randomIndex(options.length)];
@@ -1920,26 +1941,36 @@
             const settings = settingsForCurrentSeason();
       const policies = [];
 
-      policies.push(
-        createArrivalPolicy(choosePolicyLimit(settings.arrivals))
-      );
-
-      if (settings.age) {
-        policies.push(
-          createAgePolicy(choosePolicyLimit(settings.age))
-        );
+      const theme=chooseRecruitmentTheme();
+      const themeData=recruitmentThemes[theme];
+      const makers={age:()=>createAgePolicy(choosePolicyLimit(settings.age)),
+        wages:()=>createWagePolicy(choosePolicyLimit(settings.wages)),
+        budget:()=>createBudgetPolicy(choosePolicyLimit(settings.budget)),
+        loans:()=>createLoanPolicy(choosePolicyLimit(settings.loans)),
+        fees:()=>createFeePolicy(choosePolicyLimit(settings.feeShare)),market:createMarketPolicy};
+      const arrivalLimit=choosePolicyLimit(settings.arrivals);
+      const arrivals=createArrivalPolicy(arrivalLimit);
+      arrivals.theme=theme;
+      arrivals.reason=`${themeData.label}: ${arrivals.reason}`;
+      arrivals.pressure=Math.max(0,(8-arrivalLimit)*0.12);
+      policies.push(arrivals);
+      const available=themeData.categories.filter(category =>
+        (category!=='market' || ['veteran','legendary'].includes(selectedDifficulty)) &&
+        (category!=='wages' || getSeasonProgress().highestWeeklyWage!==0) &&
+        (!['budget','fees'].includes(category) || getSeasonProgress().transferBudget!==0));
+      // Keep the theme's lead restriction, then vary the remaining compatible categories.
+      const first=available.shift();
+      if(first) policies.push(makers[first]());
+      while(policies.length<settings.ruleCount && available.length) {
+        const chosen=available.splice(randomIndex(available.length),1)[0];
+        // Avoid piling a total spending cap and a per-player fee cap together.
+        if((chosen==='fees' && policies.some(p=>p.category==='budget')) ||
+          (chosen==='budget' && policies.some(p=>p.category==='fees'))) continue;
+        policies.push(makers[chosen]());
       }
-
-      if (settings.wages) {
-        policies.push(
-          createWagePolicy(choosePolicyLimit(settings.wages))
-        );
-      }
-
-      if (settings.budget) {
-        policies.push(
-          createBudgetPolicy(choosePolicyLimit(settings.budget))
-        );
+      for(const policy of policies) if(policy.pressure===undefined) {
+        policy.pressure={age:0.6,wages:0.45,budget:0.45,loans:0.25,fees:0.35,market:0.7}[policy.category] || 0;
+        policy.pressure*={rookie:0.5,professional:0.8,veteran:1,legendary:1.2}[selectedDifficulty];
       }
 
       // One rule per category avoids duplicate or opposing requirements.
@@ -1963,7 +1994,7 @@
         );
 
         if (
-          policy.category === "budget" &&
+          ["budget", "fees"].includes(policy.category) &&
           progress.transferBudget !== null
         ) {
           const percentage = Number(
@@ -1979,6 +2010,7 @@
             `That gives an initial spending limit of ` +
             `${formatBudget(spendingLimit)} before any additional ` +
             "funds the board makes available.";
+          if(policy.category==='fees') policy.clarification += " This is a per-player cap, rather than a total season spending limit.";
         }
 
         if (
@@ -2259,6 +2291,42 @@
     };
   }
 
+  function isLeagueChallenge(challenge) {
+    return ['league-relative-v1','league-variety-v2'].includes(challenge?.model);
+  }
+  function createVariedLeagueBonuses(baseline,size) {
+    const level=['rookie','professional','veteran','legendary'].indexOf(selectedDifficulty);
+    const strong=baseline<=Math.ceil(size*0.3), weak=baseline>=Math.ceil(size*0.7);
+    const adjustment=strong?0.25:weak?-0.2:0;
+    const scoring=Math.round((1.1+level*0.15+adjustment)*100)/100;
+    const conceding=Math.round((1.65-level*0.15-adjustment)*100)/100;
+    const difference=strong?level*4:weak?-Math.round(size*(0.45-level*0.08)):0;
+    const common='Use the same regular-season league phase as your main target. Cup matches, play-offs and later championship splits do not count.';
+    const pool={
+      scoring:{type:'scoring-rate',target:scoring,title:`Average at least ${scoring.toFixed(2)} goals per league match`,description:`Score at least ${scoring.toFixed(2)} goals per match across your regular league phase. ${common}`},
+      defending:{type:'conceding-rate',target:conceding,title:`Concede no more than ${conceding.toFixed(2)} goals per league match`,description:`Keep goals conceded divided by league matches played at or below ${conceding.toFixed(2)}. ${common}`},
+      difference:{type:'goal-difference',target:difference,title:difference===0?'Finish with a level or positive league goal difference':`Finish with league goal difference of ${difference>0?'+':''}${difference} or better`,description:`Your league goals scored minus league goals conceded must be at least ${difference}. ${common}`}
+    };
+    const previous=getSeasonProgress().history.at(-1)?.challenge?.focus;
+    const focuses=['front-foot','hard-to-beat','balanced'].filter(f=>f!==previous);
+    const focus=focuses[randomIndex(focuses.length)];
+    const keys=focus==='front-foot'?['scoring','difference']:focus==='hard-to-beat'?['defending','difference']:['scoring','defending'];
+    return {focus,bonuses:keys.map(k=>pool[k])};
+  }
+  function assessLeagueBonus(bonus,results) {
+    if(bonus.type==='goal-difference')return results.goals-results.goalsConceded>=bonus.target;
+    if(bonus.type==='scoring-rate')return results.goals+1e-9>=results.matches*bonus.target;
+    if(bonus.type==='conceding-rate')return results.goalsConceded<=results.matches*bonus.target+1e-9;
+    return false;
+  }
+  function validVariedChallenge(challenge,size) {
+    return Number.isInteger(challenge.targetFinish) && challenge.targetFinish>=1 && challenge.targetFinish<=size &&
+      ['front-foot','hard-to-beat','balanced'].includes(challenge.focus) && challenge.bonuses?.length===2 &&
+      new Set(challenge.bonuses.map(b=>b.type)).size===2 && challenge.bonuses.every(b=>
+        ['scoring-rate','conceding-rate','goal-difference'].includes(b.type) && Number.isFinite(b.target) &&
+        (b.type==='goal-difference'?Number.isInteger(b.target)&&b.target>=-60&&b.target<=60:b.target>=0.5&&b.target<=5));
+  }
+
   function createLeagueSeasonChallenge() {
     const progress = getSeasonProgress();
     const previous = progress.history.at(-1);
@@ -2283,9 +2351,8 @@
       }
     }
     const policies = getPolicies();
-    const pressure = policies.filter(policy =>
-      ["age", "wages", "budget"].includes(policy.category)).length;
-    const restrictionAdjustment = Math.round(pressure * (size - 1) * 0.025);
+    const pressure = policies.reduce((sum,policy)=>sum+(Number.isFinite(policy.pressure)?policy.pressure:0.4),0);
+    const restrictionAdjustment = Math.round(pressure*(size-1)*0.035);
     const forecast = Math.max(1, Math.min(size, baseline + restrictionAdjustment));
     const offsets = {
       rookie: Math.max(1, Math.round((size - 1) * 0.15)),
@@ -2294,39 +2361,29 @@
       legendary: -Math.max(1, Math.round((size - 1) * 0.15))
     };
     const recovery = previous && !previous.mainAchieved ? 1 : 0;
-    const target = Math.max(1, Math.min(size, baseline + offsets[selectedDifficulty] + recovery));
-    const rates = { rookie: 1, professional: 1.2, veteran: 1.4, legendary: 1.6 };
-    const goalRate = rates[selectedDifficulty];
+    const target = Math.max(1, Math.min(Math.max(1,size-1), baseline + offsets[selectedDifficulty] + recovery));
+    const varied=createVariedLeagueBonuses(baseline,size);
+    const focusLabel={'front-foot':'Play on the front foot','hard-to-beat':'Build a resilient side',balanced:'Build a balanced season'}[varied.focus];
     return {
-      model: "league-relative-v1",
+      model: "league-variety-v2",
       targetFinish: target,
-      goalRate,
-      goalDifferenceTarget: 0,
+      focus:varied.focus,
       mainObjective: {
-        title: target === 1 ? `Finish first in ${progress.league}` : `Finish ${ordinal(target)} or higher`,
+        title: `${focusLabel}: ${target===1?'finish first':`finish ${ordinal(target)} or higher`}`,
         description: `Finish ${ordinal(target)} or higher in the main regular-season ${progress.league} table for your club's group (${size} clubs). Use the table before play-offs or championship splits. In competitions with separate league phases, use the first full league phase consistently. Cup results do not decide this objective.`
       },
-      bonuses: [
-        {
-          title: "Finish with a positive or level goal difference",
-          description: "Score at least as many goals as you concede in that regular league phase. Cup and play-off matches do not count."
-        },
-        {
-          title: `Average at least ${goalRate.toFixed(1)} league goals per match`,
-          description: `Score at least ${goalRate.toFixed(1)} goals per match across the same regular league phase. This scales to the number of games you play.`
-        }
-      ],
+      bonuses: varied.bonuses,
       prediction: {
         finish: forecast,
         beatTarget: forecast === 1 ? "Match it: finish first" : `${ordinal(forecast - 1)} or higher`,
-        explanation: `${basis} Your ${policies.length} recruitment ${policies.length === 1 ? "rule" : "rules"} ${restrictionAdjustment > 0 ? `add a conservative allowance of ${restrictionAdjustment} ${restrictionAdjustment === 1 ? "position" : "positions"} to the forecast` : "are included without changing its rounded position"}. ${difficultyNames[selectedDifficulty]} sets your main target at ${ordinal(target)} or higher. ${recovery ? "A missed target gives you a little more rebuilding room this season. " : ""}This is a provisional estimate, not FM's media prediction or a match simulation.${forecast === 1 ? " First place is the highest possible league finish, so you can match this prediction." : ""}`
+        explanation: `${basis} The strength of your recruitment restrictions ${restrictionAdjustment > 0 ? `add a conservative allowance of ${restrictionAdjustment} ${restrictionAdjustment === 1 ? "position" : "positions"} to the forecast` : "are included without changing its rounded position"}. ${difficultyNames[selectedDifficulty]} sets your main target at ${ordinal(target)} or higher. ${recovery ? "A missed target gives you a little more rebuilding room this season. " : ""}This is a provisional estimate, not FM's media prediction or a match simulation.${forecast === 1 ? " First place is the highest possible league finish, so you can match this prediction." : ""}`
       }
     };
   }
 
   function updateSeasonResultFields() {
     const form = byId("season-results-form");
-    const modern = getSeasonChallenge().model === "league-relative-v1";
+    const modern = isLeagueChallenge(getSeasonChallenge());
     const cup = form.elements.namedItem("faCupRound");
     cup.closest("label").hidden = modern;
     cup.disabled = modern;
@@ -2363,7 +2420,7 @@
     if (!savedSeasonChallenges.has(key)) {
       const previous = getSeasonProgress().history.at(-1);
       // Older saved demo careers retain their existing cup objectives.
-      const legacy = previous && previous.challenge?.model !== "league-relative-v1" && hasClubBriefing();
+      const legacy = previous && !isLeagueChallenge(previous.challenge) && hasClubBriefing();
       savedSeasonChallenges.set(key, legacy
         ? createAdaptiveSeasonChallenge()
         : createLeagueSeasonChallenge());
@@ -2406,7 +2463,7 @@
 
     const explanation = byId("prediction-explanation");
     explanation.textContent = challenge.prediction.explanation;
-    if (challenge.model === "league-relative-v1" && getSeasonProgress().season === 1) {
+    if (isLeagueChallenge(challenge) && getSeasonProgress().season === 1) {
       const link = textElement("a", "", "FM24 club guide");
       link.href = selectedClub.guideSource;
       link.target = "_blank";
@@ -2514,7 +2571,7 @@
     }
 
     const policies = career.policies;
-    const allowedCategories = ["arrivals", "age", "wages", "budget"];
+    const allowedCategories = ["arrivals", "age", "wages", "budget", "loans", "fees", "market"];
 
     if (
       !Array.isArray(policies) ||
@@ -2543,6 +2600,7 @@
         Number.isFinite(challenge.goalRate) && challenge.goalRate >= 0.5 && challenge.goalRate <= 5 &&
         challenge.goalDifferenceTarget === 0 && challenge.bonuses?.length === 2
       )) &&
+      (challenge.model !== 'league-variety-v2' || validVariedChallenge(challenge,career.progress?.leagueSize || 24)) &&
       challenge.mainObjective &&
       typeof challenge.mainObjective.title === "string" &&
       typeof challenge.mainObjective.description === "string" &&
@@ -3058,10 +3116,11 @@
       Number.isInteger(entry.goals) &&
       entry.goals >= 0 &&
       entry.goals <= 1000 &&
-      (entry.challenge?.model !== "league-relative-v1" || (
+      (!isLeagueChallenge(entry.challenge) || (
         Number.isInteger(entry.matches) && entry.matches >= 1 && entry.matches <= 200 &&
         Number.isInteger(entry.goalsConceded) && entry.goalsConceded >= 0 && entry.goalsConceded <= 1000
       )) &&
+      (entry.challenge?.model !== 'league-variety-v2' || validVariedChallenge(entry.challenge,entry.leagueSize)) &&
       [0, 3, 4, 5, 6, 7, 8, 9].includes(entry.cupRound) &&
       ["stayed", "promoted", "relegated"].includes(entry.outcome) &&
       typeof entry.mainAchieved === "boolean" &&
@@ -3136,6 +3195,10 @@
       }
     }
 
+    if (rebuilding || previous.outcome === 'promoted') {
+      settings.loans=settings.loans.map(limit=>Math.min(5,limit+1));
+      settings.feeShare=settings.feeShare.map(percent=>Math.min(50,percent+5));
+    }
     return settings;
   }
 
@@ -3503,7 +3566,7 @@
     const data = new FormData(form);
     const progress = getSeasonProgress();
     const currentChallenge = getSeasonChallenge();
-    const modern = currentChallenge.model === "league-relative-v1";
+    const modern = isLeagueChallenge(currentChallenge);
     const matches = modern ? Number(data.get("leagueMatches")) : null;
     const goalsConceded = modern ? Number(data.get("leagueGoalsConceded")) : null;
 
@@ -3582,15 +3645,11 @@
       objectiveTitle: challenge.mainObjective.title,
       predictedFinish: challenge.prediction.finish,
       predictionBeaten: finish < challenge.prediction.finish,
-      bonusResults: [
-        {
-          title: challenge.bonuses[0].title,
-          achieved: modern ? goals - goalsConceded >= currentChallenge.goalDifferenceTarget : cupRound >= bonuses.cup
-        },
-        {
-          title: challenge.bonuses[1].title,
-          achieved: modern ? goals + 1e-9 >= matches * currentChallenge.goalRate : goals >= bonuses.goals
-        }
+      bonusResults: currentChallenge.model==='league-variety-v2'
+        ? challenge.bonuses.map(bonus=>({title:bonus.title,achieved:assessLeagueBonus(bonus,{goals,goalsConceded,matches})}))
+        : [
+        {title:challenge.bonuses[0].title,achieved:modern?goals-goalsConceded>=currentChallenge.goalDifferenceTarget:cupRound>=bonuses.cup},
+        {title:challenge.bonuses[1].title,achieved:modern?goals+1e-9>=matches*currentChallenge.goalRate:goals>=bonuses.goals}
       ],
       policies: structuredClone(getPolicies()),
       challenge: structuredClone(challenge),
