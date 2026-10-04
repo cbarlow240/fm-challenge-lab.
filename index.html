@@ -16,7 +16,8 @@
   <script src="squads-6.js?v=2" defer></script>
   <script src="squads-7.js?v=2" defer></script>
   <script src="squads-8.js?v=2" defer></script>
-  <script src="app.js?v=25" defer></script>
+  <script src="squads-rookie-fix.js?v=1" defer></script>
+  <script src="app.js?v=26" defer></script>
 </head>
 <body>
   <header class="site-header">
@@ -34,6 +35,1200 @@
       </svg>
       <span>FM Challenge Lab</span>
     </a>
+
+    <button class="button button-secondary" type="button" disabled>
+      Sign In
+    </button>
+  </header>
+
+  <main class="home">
+    <div id="home-screen">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="pitch-background" aria-hidden="true">
+          <div class="pitch-circle"></div>
+        </div>
+
+        <p class="eyebrow">Your next managerial adventure</p>
+
+        <h1 id="hero-title">
+          New club.<br>
+          New rules.<br>
+          <span>New challenge.</span>
+        </h1>
+
+        <p class="hero-description">
+          Discover your club. Get your tactics. Take on five seasons
+          of challenges shaped by your career.
+        </p>
+
+        <button
+          class="button button-primary"
+          id="new-challenge-button"
+          type="button"
+        >
+          Generate Your Challenge
+          <span aria-hidden="true">→</span>
+        </button>
+
+        <p class="hero-note">
+          Preview a challenge for free. Sign in when you’re ready to save.
+        </p>
+      </section>
+
+      <section class="home-links" aria-label="Explore FM Challenge Lab">
+        <button class="feature-card" id="my-careers-button" type="button">
+          <span class="feature-icon" aria-hidden="true">▤</span>
+          <span class="feature-content">
+            <span class="feature-title">My Careers</span>
+            <span class="feature-description">
+              Pick up where you left off. Your next season is waiting.
+            </span>
+          </span>
+          <span class="feature-arrow" aria-hidden="true">↗</span>
+        </button>
+
+        <button class="feature-card" type="button" disabled>
+          <span class="feature-icon feature-icon-purple" aria-hidden="true">◎</span>
+          <span class="feature-content">
+            <span class="feature-title">Community</span>
+            <span class="feature-description">
+              Explore shared careers. See how others rise to the challenge.
+            </span>
+          </span>
+          <span class="feature-arrow" aria-hidden="true">↗</span>
+        </button>
+      </section>
+    </div>
+
+    <section
+      class="challenge-setup"
+      id="difficulty-screen"
+      aria-labelledby="difficulty-title"
+      hidden
+    >
+      <button class="back-button" id="back-home-button" type="button">
+        ← Back to home
+      </button>
+
+      <p class="eyebrow">Set the stakes</p>
+
+      <h2 id="difficulty-title" tabindex="-1">
+        Choose your difficulty.
+      </h2>
+
+      <p class="setup-description">
+        Choose how far your club search reaches. The tactics stay competitive; the rules raise the challenge.
+      </p>
+
+      <fieldset class="difficulty-fieldset">
+        <legend>Choose one difficulty to continue</legend>
+
+        <div class="difficulty-grid">
+          <label class="difficulty-card">
+            <input type="radio" name="difficulty" value="rookie">
+            <span class="difficulty-content">
+              <span class="difficulty-name">Rookie</span>
+              <span class="difficulty-description">
+                Top divisions in our chosen 10 European countries.
+                Flexible rules and achievable targets.
+              </span>
+            </span>
+          </label>
+
+          <label class="difficulty-card">
+            <input type="radio" name="difficulty" value="professional">
+            <span class="difficulty-content">
+              <span class="difficulty-name">Professional</span>
+              <span class="difficulty-description">
+                First and second divisions in the same 10 European countries.
+                Balanced rules and realistic targets.
+              </span>
+            </span>
+          </label>
+
+          <label class="difficulty-card">
+            <input type="radio" name="difficulty" value="veteran">
+            <span class="difficulty-content">
+              <span class="difficulty-name">Veteran</span>
+              <span class="difficulty-description">
+                All available divisions across Europe and South America.
+                Tighter rules and bigger expectations.
+              </span>
+            </span>
+          </label>
+
+          <label class="difficulty-card">
+            <input type="radio" name="difficulty" value="legendary">
+            <span class="difficulty-content">
+              <span class="difficulty-name">Legendary</span>
+              <span class="difficulty-description">
+                All available clubs worldwide.
+                The toughest compatible rules and season targets.
+              </span>
+            </span>
+          </label>
+        </div>
+      </fieldset>
+
+      <div class="setup-actions">
+        <button
+          class="button button-primary"
+          id="generate-button"
+          type="button"
+          disabled
+          aria-describedby="difficulty-status"
+        >
+          Generate My Challenge
+          <span aria-hidden="true">→</span>
+        </button>
+
+        <p id="difficulty-status" class="setup-status" role="status">
+          Select a difficulty to continue.
+        </p>
+      </div>
+    </section>
+      <section
+      class="club-reveal"
+      id="club-screen"
+      aria-labelledby="club-title"
+      hidden
+    >
+      <button
+        class="back-button"
+        id="back-setup-button"
+        type="button"
+      >
+        ← Change difficulty
+      </button>
+
+      <div id="club-shuffle" hidden>
+        <p class="eyebrow">Searching for your next chapter</p>
+
+        <div class="shuffle-symbol" aria-hidden="true">⇄</div>
+
+        <h2 id="shuffle-name" aria-hidden="true">
+          Finding your club…
+        </h2>
+
+        <div class="shuffle-track" aria-hidden="true"></div>
+
+        <p class="setup-description" role="status">
+          Choosing your next club…
+        </p>
+      </div>
+
+      <div id="club-result" hidden>
+        <div class="club-heading">
+          <div
+            class="club-crest"
+            id="club-crest"
+            aria-label="Placeholder club badge"
+          >
+            <span id="club-initials"></span>
+          </div>
+
+          <div class="club-heading-content">
+            <p class="eyebrow">Your next club awaits</p>
+
+            <h2 id="club-title" tabindex="-1"></h2>
+
+            <p class="club-meta">
+              <span id="club-country"></span>
+              <span aria-hidden="true"> · </span>
+              <span id="club-league"></span>
+            </p>
+
+            <p class="club-difficulty" id="club-difficulty"></p>
+          </div>
+        </div>
+
+        <p class="club-introduction" id="club-introduction"></p>
+
+        <section class="club-honours" aria-labelledby="honours-title">
+          <h3 id="honours-title">
+            Club honours at the FM24 starting point
+          </h3>
+
+          <div class="honours-grid" id="club-honours"></div>
+        </section>
+
+        <div class="reveal-actions">
+          <button
+            class="button button-secondary"
+            id="reroll-button"
+            type="button"
+          >
+            Roll Again
+            <span aria-hidden="true">⇄</span>
+          </button>
+
+          <button
+            class="button button-primary"
+            id="view-challenge-button"
+            type="button"
+          >
+            View My Challenge
+            <span aria-hidden="true">→</span>
+          </button>
+        </div>
+
+        <p class="hero-note">
+          Unlimited rerolls. Each draw is independent, so clubs can repeat.
+        </p>
+
+        <p class="preview-note">
+          FM24 club pool · Graphics appear where available
+        </p>
+      </div>
+
+      <p
+        class="setup-status"
+        id="club-status"
+        role="status"
+        aria-live="polite"
+      ></p>
+    </section>
+      <section
+      class="career-briefing"
+      id="briefing-screen"
+      aria-labelledby="briefing-title"
+      hidden
+    >
+      <div class="briefing-topbar">
+        <button
+          class="back-button"
+          id="back-club-button"
+          type="button"
+        >
+          ← Back to club
+        </button>
+
+        <button
+          class="button button-secondary"
+          id="save-career-button"
+          type="button"
+          disabled
+        >
+          Save Career
+        </button>
+      </div>
+
+      <div class="briefing-heading">
+        <div>
+          <p class="eyebrow">Your managerial briefing</p>
+
+          <h2 id="briefing-title" tabindex="-1"></h2>
+
+          <p class="club-meta">
+            <span id="briefing-league"></span>
+            <span aria-hidden="true"> · </span>
+            <span id="briefing-season-label">Season 1 of 5</span>
+          </p>
+        </div>
+
+        <span
+          class="club-difficulty"
+          id="briefing-difficulty"
+        ></span>
+      </div>
+
+      <nav class="briefing-tabs" aria-label="Career briefing">
+        <button
+          class="briefing-tab is-active"
+          id="tactics-tab-button"
+          type="button"
+          aria-current="page"
+        >
+          Tactics
+        </button>
+
+        <button
+          class="briefing-tab"
+          id="squad-tab-button"
+          type="button"
+          disabled
+        >
+          Squad
+        </button>
+
+        <button
+          class="briefing-tab"
+          id="policies-tab-button"
+          type="button"
+          disabled
+        >
+          Transfer Policies
+        </button>
+
+        <button
+          class="briefing-tab"
+          id="season-tab-button"
+          type="button"
+          disabled
+        >
+          Season Challenge
+        </button>
+      </nav>
+
+      <div class="tactics-layout" id="tactics-panel">
+        <section
+          class="tactics-board"
+          aria-labelledby="formation-title"
+        >
+          <div class="tactics-board-heading">
+            <h3 id="formation-title"></h3>
+            <span class="formation-lock">Fixed for this season</span>
+          </div>
+
+          <div
+            class="tactics-pitch"
+            id="tactics-pitch"
+            role="group"
+            aria-label="Starting eleven"
+          >
+            <div class="pitch-markings" aria-hidden="true">
+              <div class="pitch-centre-circle"></div>
+              <div class="pitch-penalty-area pitch-penalty-top"></div>
+              <div class="pitch-penalty-area pitch-penalty-bottom"></div>
+            </div>
+
+            <div class="tactics-players" id="tactics-players"></div>
+          </div>
+
+          <p class="hero-note">
+            Select a player to view their rating, position, role, and duty.
+          </p>
+        </section>
+
+        <aside
+          class="player-briefing"
+          aria-labelledby="selected-player-name"
+        >
+          <p class="eyebrow">Player briefing</p>
+
+          <h3 id="selected-player-name">Select a player</h3>
+
+          <p class="player-position" id="selected-player-position"></p>
+
+          <div class="player-rating" id="selected-player-rating" hidden>
+            <strong id="selected-player-rating-value"></strong>
+            <span>/ 10</span>
+          </div>
+
+          <p
+            class="rating-caption"
+            id="selected-player-rating-caption"
+            hidden
+          >
+            Quality relative to the club’s league
+          </p>
+
+          <dl class="player-facts" id="selected-player-facts" hidden>
+            <div>
+              <dt>Position</dt>
+              <dd id="selected-player-pitch-position"></dd>
+            </div>
+
+            <div>
+              <dt>Assigned role</dt>
+              <dd id="selected-player-role"></dd>
+            </div>
+
+            <div>
+              <dt>Duty</dt>
+              <dd id="selected-player-duty"></dd>
+            </div>
+          </dl>
+
+          <div class="tactics-commitment">
+            <h4>Your tactical commitment</h4>
+
+            <p>
+              Keep the formation, roles, and duties for this season.
+              Temporary role or duty changes are allowed only when
+              needed because of injury. Restore the original setup
+              when the injured player returns.
+            </p>
+          </div>
+        </aside>
+      </div>
+
+            <section
+        class="squad-panel"
+        id="squad-panel"
+        aria-labelledby="squad-title"
+        hidden
+      >
+        <div class="squad-toolbar">
+          <div>
+            <h3 id="squad-title">Your squad</h3>
+
+            <p class="squad-summary">
+              <span id="squad-player-count">0</span> players
+              · league-relative ratings
+            </p>
+          </div>
+
+          <div class="squad-tools">
+            <label class="squad-sort-label" for="squad-sort">
+              Sort
+            </label>
+
+            <select class="squad-select" id="squad-sort">
+              <option value="position">By position</option>
+              <option value="rating">Highest rating</option>
+              <option value="name">Name A–Z</option>
+            </select>
+
+            <button
+              class="button button-primary"
+              id="add-signing-button"
+              type="button"
+            >
+              + Add Signing
+            </button>
+          </div>
+        </div>
+<section class="signing-form" aria-labelledby="squad-import-title">
+  <h4 id="squad-import-title">Import your FM24 squad</h4>
+
+  <p class="signing-note">
+    Choose an HTML squad export from Football Manager.
+    Preview the players and attributes before using them in a career.
+  </p>
+<p>
+  <a
+    class="button button-secondary"
+    href="./fm-challenge-lab-export.fmf"
+    download="fm-challenge-lab-export.fmf"
+    aria-describedby="export-view-help"
+  >
+    Download FM24 Export View
+  </a>
+</p>
+
+<p class="signing-note" id="export-view-help">
+  In FM24, open Squad → view dropdown → Custom → Import View.
+  Choose the downloaded file, then select the imported view.
+</p>
+
+<p class="signing-note">
+  Select all players, then use FM → Print Screen → Web Page
+  to export your squad. Choose that HTML file below.
+</p>
+  <label class="signing-field" for="squad-import-file">
+    Squad export
+    <input
+      class="squad-input"
+      id="squad-import-file"
+      type="file"
+      accept=".html,.htm,text/html"
+      aria-describedby="squad-import-status"
+    >
+  </label>
+
+  <p id="squad-import-status" role="status">
+    Choose a file to preview your squad.
+  </p>
+<form
+  class="signing-form"
+  id="save-squad-import-form"
+  hidden
+>
+  <h4>Save this squad export</h4>
+
+  <p class="signing-note">
+    Record which club, league and in-game date this squad belongs to.
+    Saved exports stay in this browser.
+  </p>
+
+  <div class="signing-fields">
+    <label class="signing-field">
+      Club name
+      <input
+        class="squad-input"
+        name="clubName"
+        type="text"
+        maxlength="80"
+        placeholder="Manchester United"
+        required
+      >
+    </label>
+
+    <label class="signing-field">
+      League
+      <input
+        class="squad-input"
+        name="leagueName"
+        type="text"
+        maxlength="80"
+        placeholder="English Premier Division"
+        required
+      >
+    </label>
+
+    <label class="signing-field">
+      In-game date
+      <input
+        class="squad-input"
+        name="gameDate"
+        type="date"
+        required
+      >
+    </label>
+  </div>
+
+  <button
+    class="button button-primary"
+    id="save-squad-import-button"
+    type="submit"
+    disabled
+  >
+    Save Squad Export
+  </button>
+</form>
+<section
+  class="signing-form"
+  aria-labelledby="league-comparison-title"
+>
+  <h4 id="league-comparison-title">League comparison</h4>
+
+  <p class="signing-note">
+    Choose a player-search export from the same league and
+    in-game date as your squad. Comparisons stay in this browser.
+  </p>
+
+  <form id="league-comparison-form">
+    <div class="signing-fields">
+      <label class="signing-field">
+        League name
+        <input
+          class="squad-input"
+          name="leagueName"
+          type="text"
+          maxlength="80"
+          placeholder="English Premier Division"
+          required
+        >
+      </label>
+
+      <label class="signing-field">
+        In-game date
+        <input
+          class="squad-input"
+          name="gameDate"
+          type="date"
+          required
+        >
+      </label>
+
+      <label class="signing-field">
+        League HTML export
+        <input
+          class="squad-input"
+          id="league-comparison-file"
+          type="file"
+          accept=".html,.htm,text/html"
+        >
+      </label>
+    </div>
+
+    <button
+      class="button button-primary"
+      id="save-league-comparison-button"
+      type="submit"
+      disabled
+    >
+      Save League Comparison
+    </button>
+  </form>
+
+  <p id="league-comparison-status" role="status">
+    No league comparison loaded yet.
+  </p>
+
+  <div class="squad-groups" id="league-comparison-list"></div>
+
+  <button
+    class="button button-secondary"
+    id="rate-imported-squad-button"
+    type="button"
+    disabled
+  >
+    Show Estimated Ratings
+  </button>
+
+  <p class="signing-note" id="league-rating-summary" hidden></p>
+</section>
+  
+<section id="saved-squad-imports" hidden>
+  <h4>Your saved squad exports</h4>
+  <div class="squad-groups" id="saved-squad-import-list"></div>
+</section>
+  <div id="squad-import-preview" hidden>
+    <h4 id="squad-import-summary"></h4>
+
+    <p class="signing-note">
+      This preview is separate from your current career.
+      Player quality ratings will need a comparison with their league.
+    </p>
+
+    <div class="squad-groups" id="squad-import-players"></div>
+
+    <button
+      class="button button-secondary"
+      id="clear-squad-import-button"
+      type="button"
+    >
+      Clear Preview
+    </button>
+  </div>
+</section>
+        <form class="signing-form" id="signing-form" hidden>
+          <h4>Add a signing</h4>
+
+          <p class="signing-note">
+            Enter the player’s details and your assessment of their
+            quality relative to the league.
+          </p>
+
+          <div class="signing-fields">
+            <label class="signing-field">
+              Player name
+              <input
+                class="squad-input"
+                name="playerName"
+                type="text"
+                maxlength="60"
+                placeholder="Player name"
+                required
+              >
+            </label>
+
+            <label class="signing-field">
+              Age
+              <input
+                class="squad-input"
+                name="age"
+                type="number"
+                min="14"
+                max="60"
+                step="1"
+                placeholder="23"
+                required
+              >
+            </label>
+
+            <label class="signing-field">
+              Position group
+              <select class="squad-select" name="group">
+                <option value="goalkeepers">Goalkeepers</option>
+                <option value="defenders">Defenders</option>
+                <option value="midfielders">Midfielders</option>
+                <option value="forwards">Forwards</option>
+              </select>
+            </label>
+
+            <label class="signing-field">
+              Positions
+              <input
+                class="squad-input"
+                name="positions"
+                type="text"
+                maxlength="30"
+                placeholder="AM (R), ST"
+                required
+              >
+            </label>
+
+            <label class="signing-field">
+              Rating out of 10
+              <input
+                class="squad-input"
+                name="rating"
+                type="number"
+                min="1"
+                max="10"
+                step="0.1"
+                placeholder="7.0"
+                required
+              >
+            </label>
+          </div>
+
+          <div class="signing-actions">
+            <button class="button button-primary" type="submit">
+              Add to Squad
+            </button>
+
+            <button
+              class="button button-secondary"
+              id="cancel-signing-button"
+              type="button"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+
+        <div class="squad-undo" id="squad-undo" hidden>
+          <span id="squad-undo-message"></span>
+
+          <button
+            class="button button-secondary"
+            id="undo-remove-button"
+            type="button"
+          >
+            Undo
+          </button>
+        </div>
+
+        <div class="squad-groups" id="squad-groups"></div>
+
+        <p class="preview-note">
+          Starter squads are partial previews with provisional ratings.
+          Changes are not saved when you refresh the page.
+        </p>
+      </section>
+
+           <section
+        class="policies-panel"
+        id="policies-panel"
+        aria-labelledby="policies-title"
+        hidden
+      >
+        <div class="policies-heading">
+          <div>
+            <p class="eyebrow">Your recruitment brief</p>
+
+            <h3 id="policies-title">Transfer Policies</h3>
+
+            <p class="policies-description">
+              Build your squad within these rules for Season 1.
+              Each policy applies to new transfer activity,
+              not players already at the club.
+            </p>
+          </div>
+
+          <span class="policies-count" id="policies-count"></span>
+        </div>
+
+        <div class="policy-list" id="policy-list"></div>
+
+        <aside class="policy-guidance" aria-labelledby="policy-guidance-title">
+          <h4 id="policy-guidance-title">How your rules work</h4>
+
+          <ul>
+            <li>
+              Follow every policy together. Any exceptions will
+              be stated on the relevant policy.
+            </li>
+            <li>
+              A policy allowing a signing does not override your
+              budget or the league’s registration rules.
+            </li>
+            <li>
+              These policies remain fixed for this season.
+              Your next season’s policies will adapt to your results.
+            </li>
+          </ul>
+        </aside>
+      </section>
+
+            <section
+        class="season-panel"
+        id="season-panel"
+        aria-labelledby="season-title"
+        hidden
+      >
+        <div class="season-heading">
+          <p class="eyebrow">Your first season starts here</p>
+
+          <h3 id="season-title">Season Challenge</h3>
+
+          <p class="season-description">
+            Your main objective determines season success.
+            Bonus objectives are optional achievements.
+            Missing a target won’t end your career.
+          </p>
+        </div>
+
+        <article
+          class="main-objective"
+          aria-labelledby="main-objective-title"
+        >
+          <span class="objective-label">Main objective</span>
+
+          <h4 id="main-objective-title"></h4>
+
+          <p id="main-objective-description"></p>
+        </article>
+
+        <section
+          class="bonus-objectives"
+          aria-labelledby="bonus-objectives-title"
+        >
+          <h4 id="bonus-objectives-title">Bonus objectives</h4>
+
+          <p class="bonus-introduction">
+            Extra goals to aim for. Missing these won’t count
+            as failing your main challenge.
+          </p>
+
+          <div class="bonus-grid" id="bonus-objective-list"></div>
+        </section>
+
+        <aside
+          class="prediction-panel"
+          aria-labelledby="prediction-title"
+        >
+          <div class="prediction-heading">
+            <div>
+              <p class="eyebrow">Can you exceed expectations?</p>
+
+              <h4 id="prediction-title">Beat the Prediction</h4>
+            </div>
+
+            <span class="prediction-badge">Season 1 forecast</span>
+          </div>
+
+          <div class="prediction-result">
+            <div>
+              <span class="prediction-label">
+                Predicted league finish
+              </span>
+
+              <strong id="predicted-finish"></strong>
+            </div>
+
+            <div>
+              <span class="prediction-label">Your target to beat it</span>
+
+              <strong id="prediction-beat-target"></strong>
+            </div>
+          </div>
+
+          <p
+            class="prediction-explanation"
+            id="prediction-explanation"
+          ></p>
+
+          <p class="prediction-note">
+            An estimate, not a guaranteed result. Beating the
+            prediction is separate from your main objective.
+          </p>
+        </aside>
+
+               <section
+          class="season-progress"
+          aria-labelledby="season-progress-title"
+        >
+          <h4 id="season-progress-title">Finished your season?</h4>
+
+          <p class="season-description">
+            Record your results and next season’s circumstances.
+            Your next challenge will respond to how you performed.
+          </p>
+
+          <button
+            class="button button-primary"
+            id="open-season-results-button"
+            type="button"
+          >
+            Enter Season Results
+            <span aria-hidden="true">→</span>
+          </button>
+
+          <form
+            class="season-results-form"
+            id="season-results-form"
+            hidden
+          >
+            <div class="season-results-fields">
+              <label class="signing-field">
+                Final league position
+                <input
+                  class="squad-input"
+                  name="leagueFinish"
+                  type="number"
+                  min="1"
+                  max="60"
+                  step="1"
+                  placeholder="8"
+                  required
+                >
+              </label>
+
+              <label class="signing-field">
+                Teams in the league you just played
+                <input
+                  class="squad-input"
+                  name="completedLeagueSize"
+                  type="number"
+                  min="2"
+                  max="60"
+                  step="1"
+                  value="24"
+                  required
+                >
+              </label>
+
+              <label class="signing-field">
+                Regular-season league goals scored
+                <input
+                  class="squad-input"
+                  name="leagueGoals"
+                  type="number"
+                  min="0"
+                  max="1000"
+                  step="1"
+                  placeholder="65"
+                  required
+                >
+              </label>
+
+              <label class="signing-field">
+                FA Cup round reached
+                <select class="squad-select" name="faCupRound" required>
+                  <option value="">Choose a result</option>
+                  <option value="0">Did not reach the third round</option>
+                  <option value="3">Third round</option>
+                  <option value="4">Fourth round</option>
+                  <option value="5">Fifth round</option>
+                  <option value="6">Quarter-final</option>
+                  <option value="7">Semi-final</option>
+                  <option value="8">Finalist</option>
+                  <option value="9">Winner</option>
+                </select>
+              </label>
+
+              <label class="signing-field">
+                League outcome
+                <select
+                  class="squad-select"
+                  name="leagueOutcome"
+                  required
+                >
+                  <option value="">Choose an outcome</option>
+                  <option value="stayed">Stayed in the same division</option>
+                  <option value="promoted">Promoted</option>
+                  <option value="relegated">Relegated</option>
+                </select>
+              </label>
+
+              <label class="signing-field">
+                Next season’s league
+                <input
+                  class="squad-input"
+                  name="nextLeague"
+                  type="text"
+                  maxlength="80"
+                  placeholder="For example: Premier League"
+                  required
+                >
+              </label>
+
+              <label class="signing-field">
+                Teams in next season’s league
+                <input
+                  class="squad-input"
+                  name="nextLeagueSize"
+                  type="number"
+                  min="2"
+                  max="60"
+                  step="1"
+                  placeholder="20"
+                  required
+                >
+              </label>
+
+              <label class="signing-field">
+                Budget currency
+                <select class="squad-select" name="currency">
+                  <option value="GBP">GBP — British pound</option>
+                  <option value="EUR">EUR — Euro</option>
+                  <option value="USD">USD — US dollar</option>
+                </select>
+              </label>
+
+              <label class="signing-field">
+                Next season’s available transfer budget
+                <input
+                  class="squad-input"
+                  name="transferBudget"
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="1000000"
+                  required
+                >
+              </label>
+
+              <label class="signing-field">
+                Next season’s highest existing weekly basic wage
+                <input
+                  class="squad-input"
+                  name="highestWeeklyWage"
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="20000"
+                  required
+                >
+              </label>
+            </div>
+
+            <p class="signing-note">
+              Use the figures shown in your FM save. League position
+              and goals refer to the regular season, excluding play-offs.
+              Confirm promotion or relegation separately.
+            </p>
+
+            <div class="signing-actions">
+              <button
+                class="button button-primary"
+                id="unlock-next-season-button"
+                type="submit"
+              >
+                Record Results & Unlock Next Season
+              </button>
+
+              <button
+                class="button button-secondary"
+                id="cancel-season-results-button"
+                type="button"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+
+          <p
+            class="setup-status"
+            id="season-results-status"
+            role="status"
+            aria-live="polite"
+          ></p>
+        </section>
+
+        <section
+          class="season-history"
+          id="season-history"
+          aria-labelledby="season-history-title"
+          hidden
+        >
+          <h4 id="season-history-title">Your season history</h4>
+          <div id="season-history-list"></div>
+        </section>
+
+        <p class="preview-note">
+          Starter preview · season targets and predictions are
+          provisional while we verify the FM24 data.
+        </p>
+      </section>
+
+      <p
+        class="setup-status"
+        id="briefing-status"
+        role="status"
+        aria-live="polite"
+      ></p>
+    </section>
+      <section
+      class="careers-panel"
+      id="careers-screen"
+      aria-labelledby="careers-title"
+      hidden
+    >
+      <div class="careers-topbar">
+        <button
+          class="back-button"
+          id="back-careers-button"
+          type="button"
+        >
+          ← Back
+        </button>
+
+        <button
+          class="button button-primary"
+          id="careers-new-challenge-button"
+          type="button"
+        >
+          New Challenge
+          <span aria-hidden="true">+</span>
+        </button>
+      </div>
+
+      <p class="eyebrow">Every club has a story</p>
+
+      <h2 id="careers-title" tabindex="-1">My Careers</h2>
+
+      <p class="careers-description">
+        Start something new or return to an older challenge.
+        Each career keeps its own squad, rules, and objectives.
+      </p>
+
+      <form class="career-save-form" id="career-save-form" hidden>
+        <h3>Name your career</h3>
+
+        <label class="career-name-label" for="career-name">
+          Career name
+        </label>
+
+        <input
+          class="squad-input"
+          id="career-name"
+          name="careerName"
+          type="text"
+          maxlength="60"
+          placeholder="My promotion project"
+          required
+        >
+
+        <div class="career-save-actions">
+          <button class="button button-primary" type="submit">
+            Save Career
+          </button>
+
+          <button
+            class="button button-secondary"
+            id="cancel-career-save-button"
+            type="button"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+
+      <p class="careers-empty" id="careers-empty">
+        No saved careers yet. Generate a challenge, open its briefing,
+        and choose Save Career to keep it here.
+      </p>
+
+      <div class="career-list" id="career-list"></div>
+
+      <p class="careers-storage-note">
+        Careers are private and saved in this browser on this device.
+        Account access across devices will be added later.
+      </p>
+
+      <p
+        class="setup-status"
+        id="careers-status"
+        role="status"
+        aria-live="polite"
+      ></p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <span>Built for Football Manager 2024</span>
+    <span>Five seasons. Your story.</span>
+  </footer>
+</body>
+</html>
+
+
 
     <button class="button button-secondary" type="button" disabled>
       Sign In
