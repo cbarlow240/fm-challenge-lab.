@@ -194,7 +194,7 @@
     clubPoolReady = true;
     clubPoolError = "";
     byId("club-result").querySelector(".preview-note").textContent =
-      `${clubs.length.toLocaleString("en-GB")} club options · 55 league countries · placeholder badges`;
+      `${clubs.length.toLocaleString("en-GB")} club options · 55 league countries · Graphics appear where available`;
     byId("club-result").querySelector(".hero-note").textContent =
       "Unlimited rerolls. Each draw is independent, so clubs can repeat.";
   }
@@ -406,6 +406,313 @@
     byId("club-screen").removeAttribute("aria-busy");
   }
 
+  // Graphics are referenced on their publisher's site, rather than bundled or
+  // redistributed. FM IDs match this app's historical FM24 club directory.
+  // Badge artwork may be current. Only the kits below are labelled 2023/24.
+  const kitPackSource = "https://sortitoutsi.net/content/63378/england-english-leagues-level-1-7-ss202324-new-040923";
+  const kitImageRoot = "https://sortitoutsi.b-cdn.net/uploads/extractedfiles/ttLDfTzM5RmeuK6XwFsZzYKkWgoSpT6fQbd960u2/England%20levels%201-6%20SS'23-24/1%20Premier/";
+  // Every listed file was observed in the named 2023/24 pack. Missing files
+  // mean missing coverage here, not that a club had no shirt in that slot.
+  const verifiedKits = Object.freeze({
+    "602": ["arsenal", [1, 2, 3]],
+    "603": ["astonvilla", [1, 2]],
+    "600": ["bournemouth", [1, 2, 3]],
+    "617": ["brentford", [1, 2, 3]],
+    "618": ["brighton", [1, 2, 3]],
+    "622": ["burnley", [1, 2]],
+    "650": ["everton", [1, 2, 3]],
+    "676": ["liverpool", [1, 2, 3]],
+    "677": ["luton", [1, 2]],
+    "679": ["mancity", [1, 2, 3]],
+    "680": ["manutd", [1, 2, 3]],
+    "692": ["nottforest", [1, 2, 3]],
+    "708": ["sheffieldutd", [1, 2, 3]]
+  });
+
+  // Selected senior men's first-team honours won by 30 June 2023. Keep this
+  // cutoff fixed: current source pages also list later trophies. No youth,
+  // women's, runner-up or play-off results are included in these title counts.
+  const clubHonourRecords = Object.freeze({
+    "680": {
+      source: "https://www.manutd.com/en/club/history/trophy-room",
+      sourceName: "Manchester United trophy room",
+      trophies: [
+        ["English league titles", [1908, 1911, 1952, 1956, 1957, 1965, 1967, 1993, 1994, 1996, 1997, 1999, 2000, 2001, 2003, 2007, 2008, 2009, 2011, 2013]],
+        ["European Cup / Champions League", [1968, 1999, 2008]],
+        ["FA Cup", [1909, 1948, 1963, 1977, 1983, 1985, 1990, 1994, 1996, 1999, 2004, 2016]],
+        ["League Cup", [1992, 2006, 2009, 2010, 2017, 2023]],
+        ["UEFA Cup / Europa League", [2017]]
+      ]
+    },
+    "676": {
+      source: "https://www.liverpoolfc.com/history/honours",
+      sourceName: "Liverpool honours",
+      trophies: [
+        ["English league titles", [1901, 1906, 1922, 1923, 1947, 1964, 1966, 1973, 1976, 1977, 1979, 1980, 1982, 1983, 1984, 1986, 1988, 1990, 2020]],
+        ["European Cup / Champions League", [1977, 1978, 1981, 1984, 2005, 2019]],
+        ["FA Cup", [1965, 1974, 1986, 1989, 1992, 2001, 2006, 2022]],
+        ["League Cup", [1981, 1982, 1983, 1984, 1995, 2001, 2003, 2012, 2022]],
+        ["UEFA Cup / Europa League", [1973, 1976, 2001]]
+      ]
+    },
+    "679": {
+      source: "https://www.mancity.com/club/honours/team",
+      sourceName: "Manchester City honours",
+      trophies: [
+        ["English league titles", [1937, 1968, 2012, 2014, 2018, 2019, 2021, 2022, 2023]],
+        ["European Cup / Champions League", [2023]],
+        ["FA Cup", [1904, 1934, 1956, 1969, 2011, 2019, 2023]],
+        ["League Cup", [1970, 1976, 2014, 2016, 2018, 2019, 2020, 2021]],
+        ["European Cup Winners’ Cup", [1970]]
+      ]
+    },
+    "673": {
+      source: "https://www.lcfc.com/more-history-records-men",
+      sourceName: "Leicester City honours and records",
+      trophies: [
+        ["English league titles", [2016]],
+        ["FA Cup", [2021]],
+        ["League Cup", [1964, 1997, 2000]],
+        ["Community Shield", [1971, 2021]],
+        ["English second-tier titles", [1925, 1937, 1954, 1957, 1971, 1980, 2014]],
+        ["English third-tier titles", [2009]]
+      ]
+    },
+    "667": {
+      source: "https://www.itfc.co.uk/club/history/",
+      sourceName: "Ipswich Town club history",
+      trophies: [
+        ["English league titles", [1962]],
+        ["FA Cup", [1978]],
+        ["UEFA Cup / Europa League", [1981]]
+      ]
+    },
+    "722": {
+      source: "https://safcstats.co.uk/history",
+      sourceName: "SAFC Stats club history",
+      trophies: [
+        ["English league titles", [1892, 1893, 1895, 1902, 1913, 1936]],
+        ["FA Cup", [1937, 1973]]
+      ]
+    }
+  });
+  const badgeRequests = new WeakMap();
+
+  function sourceLink(url, label) {
+    const link = textElement("a", "club-source-link", label);
+    link.href = url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    return link;
+  }
+
+  function renderClubBadge(host, club) {
+    const fallback = textElement("span", "club-badge-fallback", club.initials);
+    host.classList.add("fm-club-badge");
+    host.classList.remove("has-club-image");
+    host.style.setProperty("--club-colour", club.colour);
+    host.setAttribute("role", "img");
+    host.setAttribute("aria-label", `${club.name} — initials shown while its badge loads`);
+    if (host.id === "club-crest") fallback.id = "club-initials";
+
+    const image = document.createElement("img");
+    image.className = "club-badge-image";
+    image.alt = "";
+    image.hidden = true;
+    image.decoding = "async";
+    image.referrerPolicy = "no-referrer";
+    badgeRequests.set(host, image);
+    host.replaceChildren(fallback, image);
+    image.addEventListener("load", () => {
+      // A late response from a previous reroll must not replace this club.
+      if (badgeRequests.get(host) !== image) return;
+      fallback.hidden = true;
+      image.hidden = false;
+      host.classList.add("has-club-image");
+      host.setAttribute("aria-label", `${club.name} club badge`);
+    }, { once: true });
+    image.addEventListener("error", () => {
+      if (badgeRequests.get(host) !== image) return;
+      image.hidden = true;
+      fallback.hidden = false;
+      host.setAttribute("aria-label", `${club.name} initials — badge image unavailable`);
+    }, { once: true });
+    image.src = `https://sortitoutsi.b-cdn.net/uploads/team/club_${club.fmId}.png`;
+  }
+
+  function renderClubHonours(container, club) {
+    container.replaceChildren();
+    const record = clubHonourRecords[club.fmId];
+    if (!record) {
+      container.append(textElement("p", "club-data-gap", "This club’s trophy history hasn’t been added yet."));
+      return;
+    }
+
+    const grid = document.createElement("div");
+    grid.className = "honours-grid";
+    record.trophies.forEach(([name, years]) => {
+      const card = document.createElement("article");
+      card.className = "honour-card";
+      card.append(
+        textElement("strong", "honour-count", years.length),
+        textElement("span", "honour-name", name),
+        textElement("span", "honour-year", `Last won: ${years[years.length - 1]}`)
+      );
+      const history = document.createElement("details");
+      history.className = "honour-history";
+      history.append(
+        textElement("summary", "", "Winning years"),
+        textElement("p", "", years.join(" · "))
+      );
+      card.append(history);
+      grid.append(card);
+    });
+    const credit = textElement("p", "club-source-note", "Source: ");
+    credit.append(sourceLink(record.source, record.sourceName));
+    container.append(grid, credit);
+  }
+
+  function renderClubKits(container, club) {
+    container.replaceChildren();
+    const record = verifiedKits[club.fmId];
+    const grid = document.createElement("div");
+    grid.className = "club-kit-grid";
+    ["Home", "Away", "Third"].forEach((label, index) => {
+      const card = document.createElement("figure");
+      card.className = "club-kit-card";
+      const frame = document.createElement("div");
+      frame.className = "club-kit-frame";
+      const status = textElement("p", "kit-image-status", "2023/24 kit not added yet");
+      frame.append(status);
+
+      if (record && record[1].includes(index + 1)) {
+        status.textContent = "Loading kit…";
+        const image = document.createElement("img");
+        image.alt = `${club.name} ${label.toLowerCase()} kit, 2023/24`;
+        image.hidden = true;
+        image.width = 180;
+        image.height = 180;
+        image.decoding = "async";
+        image.referrerPolicy = "no-referrer";
+        image.addEventListener("load", () => {
+          status.hidden = true;
+          image.hidden = false;
+        }, { once: true });
+        image.addEventListener("error", () => {
+          image.hidden = true;
+          status.hidden = false;
+          status.textContent = "Kit image unavailable";
+        }, { once: true });
+        frame.append(image);
+        image.src = `${kitImageRoot}${record[0]}_${index + 1}.png?width=180&height=180`;
+      }
+      card.append(frame, textElement("figcaption", "", `${label} · 2023/24`));
+      grid.append(card);
+    });
+    container.append(grid);
+    const note = textElement("p", "club-source-note", record
+      ? "Kit artwork by bolid74, via "
+      : "Kit coverage is still being added. An empty slot means we’re missing the image.");
+    if (record) note.append(sourceLink(kitPackSource, "sortitoutsi’s 2023/24 pack"));
+    container.append(note);
+  }
+
+  function renderClubProfile() {
+    if (!selectedClub) return;
+    const club = selectedClub;
+    const panel = byId("profile-panel");
+    panel.replaceChildren();
+    const intro = document.createElement("div");
+    intro.className = "club-profile-heading";
+    const badge = document.createElement("div");
+    badge.className = "profile-club-badge";
+    renderClubBadge(badge, club);
+    const identity = document.createElement("div");
+    identity.append(
+      textElement("p", "eyebrow", "The club behind your challenge"),
+      textElement("h3", "", club.name),
+      textElement("p", "club-meta", `${club.country} · ${club.league}`)
+    );
+    intro.append(badge, identity);
+    const badgeCredit = textElement("p", "club-source-note", "Badge image: ");
+    badgeCredit.append(sourceLink("https://sortitoutsi.net/football-manager-2024/database", "sortitoutsi club guide"));
+    badgeCredit.append(document.createTextNode(" · Badge artwork may have changed since 2023."));
+    const honours = document.createElement("section");
+    honours.className = "club-profile-section";
+    honours.append(
+      textElement("h3", "", "Trophy history"),
+      textElement("p", "club-source-note", "Selected men’s first-team honours won by 30 June 2023.")
+    );
+    const honoursContent = document.createElement("div");
+    renderClubHonours(honoursContent, club);
+    honours.append(honoursContent);
+    const kits = document.createElement("section");
+    kits.className = "club-profile-section";
+    kits.append(textElement("h3", "", "2023/24 kits"));
+    const kitsContent = document.createElement("div");
+    renderClubKits(kitsContent, club);
+    kits.append(kitsContent);
+    panel.append(intro, badgeCredit, honours, kits);
+  }
+
+  function careerClubIdentity(club) {
+    const identity = document.createElement("div");
+    identity.className = "career-club-identity";
+    const badge = document.createElement("div");
+    badge.className = "career-club-badge";
+    renderClubBadge(badge, club);
+    identity.append(badge, textElement("p", "career-club-name", club.name));
+    return identity;
+  }
+
+  function initialiseClubPresentation() {
+    const style = document.createElement("style");
+    style.id = "club-presentation-styles";
+    style.textContent = clubPresentationStyles;
+    document.head.append(style);
+
+    byId("honours-title").textContent = "Trophy history";
+    const honours = byId("club-honours");
+    honours.className = "";
+    const honoursNote = textElement("p", "club-source-note", "Selected men’s first-team honours won by 30 June 2023.");
+    honours.parentNode.insertBefore(honoursNote, honours);
+
+    const kits = document.createElement("section");
+    kits.className = "club-profile-section reveal-kit-section";
+    const kitTitle = textElement("h3", "", "2023/24 kits");
+    kitTitle.id = "reveal-kits-title";
+    kits.setAttribute("aria-labelledby", kitTitle.id);
+    const kitsContent = document.createElement("div");
+    kitsContent.id = "reveal-club-kits";
+    kits.append(kitTitle, kitsContent);
+    byId("club-result").insertBefore(kits, byId("club-result").querySelector(".reveal-actions"));
+
+    const heading = byId("briefing-screen").querySelector(".briefing-heading");
+    const identity = document.createElement("div");
+    identity.className = "briefing-club-identity";
+    const badge = document.createElement("div");
+    badge.id = "briefing-club-badge";
+    badge.className = "briefing-club-badge";
+    identity.append(badge, heading.firstElementChild);
+    heading.insertBefore(identity, heading.firstElementChild);
+
+    const nav = byId("briefing-screen").querySelector(".briefing-tabs");
+    const button = textElement("button", "briefing-tab", "Club Profile");
+    button.id = "profile-tab-button";
+    button.type = "button";
+    button.setAttribute("aria-controls", "profile-panel");
+    button.addEventListener("click", () => switchTab("profile"));
+    nav.insertBefore(button, nav.firstElementChild);
+    const panel = document.createElement("section");
+    panel.id = "profile-panel";
+    panel.className = "club-profile-panel";
+    panel.setAttribute("aria-label", "Club profile");
+    panel.hidden = true;
+    byId("briefing-screen").insertBefore(panel, byId("tactics-panel"));
+  }
+
+  const clubPresentationStyles = ".fm-club-badge {\n  display: grid; place-items: center; flex-shrink: 0;\n  clip-path: none; background: transparent;\n}\n.fm-club-badge > * { grid-area: 1 / 1; }\n.fm-club-badge .club-badge-image {\n  display: block; width: 100%; height: 100%; object-fit: contain;\n  filter: drop-shadow(0 6px 14px rgb(0 0 0 / 22%));\n}\n.fm-club-badge .club-badge-fallback {\n  display: grid; place-items: center; padding: 10px;\n  width: 100%; height: 100%; box-sizing: border-box;\n  border: 1px solid var(--border); border-radius: 16px;\n  background: var(--card); color: var(--text); font-weight: 800;\n  font-size: 16px; overflow-wrap: anywhere; text-align: center;\n}\n.fm-club-badge [hidden], .club-kit-frame [hidden] { display: none !important; }\n.briefing-club-identity, .club-profile-heading, .career-club-identity {\n  display: flex; align-items: center; gap: 20px; min-width: 0;\n}\n.briefing-club-identity > div:last-child, .club-profile-heading > div:last-child { min-width: 0; }\n.briefing-club-badge { width: 64px; height: 76px; }\n.profile-club-badge { width: 90px; height: 104px; }\n.career-club-badge { width: 38px; height: 46px; }\n.career-club-badge .club-badge-fallback { padding: 4px; font-size: 10px; border-radius: 8px; }\n.career-club-identity { gap: 12px; margin: 14px 0; }\n.career-club-identity .career-club-name { margin: 0; }\n.briefing-tabs { display: flex; flex-wrap: wrap; }\n.briefing-tabs .briefing-tab { flex: 1 1 130px; }\n.club-profile-panel { padding: 26px; border: 1px solid var(--border); border-radius: 16px; background: var(--card); }\n.club-profile-heading h3 { margin: 0 0 10px; font-size: clamp(24px, 3vw, 32px); overflow-wrap: anywhere; }\n.club-profile-heading .eyebrow { margin: 0 0 12px; }\n.club-profile-section { margin-top: 30px; padding-top: 26px; border-top: 1px solid var(--border); }\n.club-profile-section h3 { margin: 0 0 16px; font-size: 19px; color: var(--text); }\n.club-source-note { color: var(--muted); font-size: 12px; line-height: 1.8; margin: 12px 0 18px; }\n.club-source-link { color: var(--blue); text-underline-offset: 3px; }\n.club-data-gap { color: var(--muted); font-size: 14px; line-height: 1.7; margin: 0; }\n.honour-history { margin-top: 14px; color: var(--muted); font-size: 12px; line-height: 1.8; }\n.honour-history summary { cursor: pointer; color: var(--blue); }\n.honour-history p { margin: 8px 0 0; }\n.club-kit-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }\n.club-kit-card { min-width: 0; margin: 0; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; background: var(--card); }\n.club-kit-frame { display: grid; place-items: center; min-height: 206px; padding: 12px; box-sizing: border-box; background: radial-gradient(ellipse at center, rgb(69 182 255 / 7%), transparent 80%); }\n.club-kit-frame img { width: min(180px, 100%); height: auto; object-fit: contain; }\n.kit-image-status { margin: 0; max-width: 160px; color: var(--muted); text-align: center; font-size: 13px; line-height: 1.7; }\n.club-kit-card figcaption { padding: 14px; border-top: 1px solid var(--border); text-align: center; font-size: 13px; color: var(--text); }\n@media (max-width: 700px) {\n  .club-profile-panel { padding: 18px; }\n  .club-profile-panel .honours-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }\n  .club-kit-grid { gap: 10px; }\n  .club-kit-frame { min-height: 160px; padding: 8px; }\n  .club-kit-card figcaption { padding: 12px 6px; font-size: 12px; }\n  .briefing-club-identity { gap: 12px; }\n  .briefing-club-badge { width: 48px; height: 58px; }\n}\n@media (max-width: 460px) {\n  .club-kit-grid, .club-profile-panel .honours-grid { grid-template-columns: 1fr; }\n  .club-kit-frame { min-height: 206px; }\n  .club-profile-heading { gap: 14px; }\n  .profile-club-badge { width: 64px; height: 76px; }\n}\n";
+
   function renderClub(club) {
     byId("club-title").textContent = club.name;
     byId("club-initials").textContent = club.initials;
@@ -415,15 +722,11 @@
       difficultyNames[selectedDifficulty];
     byId("club-introduction").textContent = club.introduction;
 
-    byId("club-crest").style.setProperty("--club-colour", club.colour);
-    byId("club-crest").setAttribute(
-      "aria-label",
-      `${club.name} placeholder badge`
-    );
+    renderClubBadge(byId("club-crest"), club);
+    byId("club-honours").closest(".club-honours").hidden = false;
+    renderClubHonours(byId("club-honours"), club);
+    renderClubKits(byId("reveal-club-kits"), club);
 
-    byId("club-honours").replaceChildren();
-
-    byId("club-honours").closest(".club-honours").hidden = !club.honours.length;
     byId("club-country").title = "League country";
     const arrow = textElement("span", "", "→");
     arrow.setAttribute("aria-hidden", "true");
@@ -432,18 +735,6 @@
       arrow
     );
 
-    club.honours.forEach(([count, name, year]) => {
-      const card = document.createElement("div");
-      card.className = "honour-card";
-
-      card.append(
-        textElement("strong", "honour-count", count),
-        textElement("span", "honour-name", name),
-        textElement("span", "honour-year", year)
-      );
-
-      byId("club-honours").append(card);
-    });
   }
 
   function startClubDraw() {
@@ -840,6 +1131,7 @@
     activeTab = tab;
 
     const panels = {
+      profile: "profile-panel",
       tactics: "tactics-panel",
       squad: "squad-panel",
       policies: "policies-panel",
@@ -861,7 +1153,10 @@
       }
     });
 
-    if (tab === "squad") {
+    if (tab === "profile") {
+      renderClubProfile();
+      announce("Club badge, selected trophy history and 2023/24 kits. Missing records are marked.");
+    } else if (tab === "squad") {
       renderSquad();
 
       announce(
@@ -901,6 +1196,7 @@
     getSquad();
 
     byId("briefing-title").textContent = selectedClub.name;
+    renderClubBadge(byId("briefing-club-badge"), selectedClub);
     byId("briefing-league").textContent = selectedClub.league;
     byId("briefing-difficulty").textContent =
       difficultyNames[selectedDifficulty];
@@ -2000,7 +2296,7 @@
 
       card.append(
         heading,
-        textElement("p", "career-club-name", club.name),
+        careerClubIdentity(club),
         textElement(
           "p",
           "career-details",
@@ -2900,6 +3196,7 @@
     );
   });
 
+  initialiseClubPresentation();
   initialiseClubPool();
 })();
 // FM24 squad export preview. Separate from saved careers.
