@@ -393,7 +393,19 @@
       tacticSlot('M (R)',['M'],'R','winger','Winger','Support','Right midfielder'),
       tacticSlot('M (CL)',['M'],'C','centralMidfielder','Central Midfielder','Support','Central midfielder'),
       tacticSlot('M (CR)',['M'],'C','defensiveMidfielder','Central Midfielder','Defend','Central midfielder'),
-      ...tacticBackFour()]}
+      ...tacticBackFour()]},
+    {name:'3-4-1-2', rows:[[0,1],[2],[3,5,6,4],[7,8,9],[10]], slots:[
+      tacticSlot('ST (CL)',['ST'],'C','striker','Advanced Forward','Attack','Striker'),
+      tacticSlot('ST (CR)',['ST'],'C','linkStriker','Deep-Lying Forward','Support','Striker'),
+      tacticSlot('AM (C)',['AM'],'C','attackingMidfielder','Attacking Midfielder','Attack','Attacking midfielder'),
+      tacticSlot('M (L)',['M'],'L','wideMidfielder','Wide Midfielder','Support','Left midfielder'),
+      tacticSlot('M (R)',['M'],'R','wideMidfielder','Wide Midfielder','Support','Right midfielder'),
+      tacticSlot('M (CL)',['M'],'C','centralMidfielder','Central Midfielder','Support','Central midfielder'),
+      tacticSlot('M (CR)',['M'],'C','defensiveMidfielder','Central Midfielder','Defend','Holding midfielder'),
+      tacticSlot('D (CL)',['D'],'C','centreBack','Central Defender','Defend','Centre-back'),
+      tacticSlot('D (C)',['D'],'C','centreBack','Central Defender','Defend','Centre-back'),
+      tacticSlot('D (CR)',['D'],'C','centreBack','Central Defender','Defend','Centre-back'),
+      tacticSlot('GK',['GK'],'','goalkeeper','Goalkeeper','Defend','Goalkeeper')]}
   ];
   function fitsTacticSlot(player, slot) {
     const text = player.positions.toUpperCase();
@@ -418,6 +430,7 @@
       centralMidfielder:{Passing:2,Decisions:2,Vision:1,Stamina:1,'First Touch':1,'Work Rate':1},
       attackingMidfielder:{Passing:2,Vision:2,Technique:1,Dribbling:1,'Off the Ball':1},
       winger:{Pace:2,Acceleration:2,Dribbling:2,Crossing:1,'Off the Ball':1},
+      wideMidfielder:{Stamina:2,'Work Rate':2,Positioning:2,Tackling:1,Teamwork:1,Passing:1,Crossing:1,Pace:1},
       linkStriker:{Passing:2,'First Touch':2,Technique:1,Strength:1,Decisions:1,'Off the Ball':1},
       striker:{Finishing:2,'Off the Ball':2,Acceleration:1,Pace:1,Composure:1}
     }[slot.profile];
